@@ -11,7 +11,11 @@
   --danger: #9f2d2d;
 }
 
-* { box-sizing: border-box; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
 body.bracket-page {
   margin: 0;
@@ -20,6 +24,7 @@ body.bracket-page {
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
+  padding: 1.25rem 0 1.25rem;
   background-color: var(--pitch-dark);
   background-image: repeating-linear-gradient(
     90deg,
@@ -36,6 +41,7 @@ body.bracket-page::before {
   inset: 2vh 1.2vw;
   border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 10px;
+  box-sizing: border-box;
   pointer-events: none;
   z-index: 0;
   background:
@@ -66,11 +72,11 @@ body.bracket-index {
 }
 
 .bracket-index .wrap {
-  margin: 2rem auto;
+  margin: 0 auto;
 }
 
 .bracket-readonly .wrap {
-  margin: 1.2rem auto 2rem;
+  margin: 0 auto;
 }
 
 .topbar {
@@ -149,15 +155,15 @@ button:disabled {
 
 .layout {
   display: grid;
-  grid-template-columns: repeat(9, minmax(120px, 1fr));
+  grid-template-columns: repeat(9, minmax(0, 1fr));
   gap: 0.65rem;
   align-items: center;
-  overflow-x: auto;
+  overflow-x: hidden;
   padding-bottom: 0.75rem;
 }
 
 .round {
-  background: color-mix(in srgb, var(--card) 92%, #edf2f7 8%);
+  background: color-mix(in srgb, var(--card) 86%, #edf2f7 14%);
   border: 1px solid var(--line);
   border-radius: 0.4rem;
   padding: 0.6rem;
@@ -183,7 +189,7 @@ button:disabled {
 .matches.single { gap: 0; }
 
 .match {
-  background: var(--card);
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid var(--line);
   border-radius: 0.35rem;
   padding: 0.35rem;
@@ -245,7 +251,7 @@ button:disabled {
   align-items: center;
   text-align: center;
   height: fit-content;
-  background: linear-gradient(145deg, #f8fafb 0%, #eef4f8 100%);
+  background: linear-gradient(145deg, rgba(248, 250, 251, 0.9) 0%, rgba(238, 244, 248, 0.86) 100%);
   border: 1px solid var(--line);
   border-radius: 0.4rem;
   padding: 1rem;
@@ -275,7 +281,7 @@ button:disabled {
 }
 
 .panel {
-  background: var(--card);
+  background: rgba(255, 255, 255, 0.88);
   border: 1px solid var(--line);
   border-radius: 0.4rem;
   padding: 0.8rem;
@@ -404,7 +410,7 @@ body.leaderboard-page {
 }
 
 .leaderboard-page .wrap {
-  margin: 2rem auto;
+  margin: 0 auto;
 }
 
 .leaderboard-page-panel {

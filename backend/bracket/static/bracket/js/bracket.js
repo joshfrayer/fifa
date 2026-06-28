@@ -178,7 +178,7 @@ function renderLeaderboardRows(body, rows) {
 
   body.innerHTML = rows
     .map(
-      (row, idx) => `<tr><td>${idx + 1}</td><td>${escapeHtml(row.name)}</td><td>${row.score}/${row.possible}</td><td><a class=\"view-btn\" href=\"/entry/${row.id}/\" target=\"_blank\" rel=\"noopener noreferrer\">View</a></td></tr>`
+      (row, idx) => `<tr><td>${idx + 1}</td><td>${escapeHtml(row.name)}</td><td>${row.score}/${row.possible}</td><td><a class=\"view-btn\" href=\"/entry/${row.id}/\">View</a></td></tr>`
     )
     .join("");
 }
