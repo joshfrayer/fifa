@@ -151,8 +151,17 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = '/static/'
+STATIC_URL = os.getenv('DJANGO_STATIC_URL', '/static/').strip() or '/static/'
+if not (STATIC_URL.startswith('http://') or STATIC_URL.startswith('https://') or STATIC_URL.startswith('/')):
+    STATIC_URL = f'/{STATIC_URL}'
+if not STATIC_URL.endswith('/'):
+    STATIC_URL = f'{STATIC_URL}/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+MEDIA_URL = os.getenv('DJANGO_MEDIA_URL', '/media/')
+if not MEDIA_URL.startswith('/'):
+    MEDIA_URL = f'/{MEDIA_URL}'
+if not MEDIA_URL.endswith('/'):
+    MEDIA_URL = f'{MEDIA_URL}/'
 
 STORAGES = {
     'default': {
