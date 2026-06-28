@@ -1,4 +1,4 @@
-FROM python:3.13-slim
+FROM python:3.13-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -11,6 +11,13 @@ RUN pip install --upgrade pip && pip install -r /tmp/requirements.txt
 
 COPY backend/ /app/
 
+FROM base AS assets
+
+RUN python manage.py collectstatic --noinput
+
+
+FROM base AS app
+
 EXPOSE 8000
 
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn fifa.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn fifa.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"]

@@ -35,7 +35,7 @@ jobs:
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
       - name: Build and Push App Container
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           target: app
@@ -43,7 +43,7 @@ jobs:
           tags: registry.mythosimage.com/${{ github.repository }}-app:${{ env.TAG }}
 
       - name: Build and Push Assets Container
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           target: assets
