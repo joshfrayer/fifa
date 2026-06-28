@@ -7,7 +7,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
-from .models import BracketEntry, Match, Team, TournamentResult
+from .models import BracketEntry, DEFAULT_TEAMS, Match, Team, TournamentResult
 
 
 ROUND_SIZES = [16, 8, 4, 2, 1]
@@ -115,6 +115,7 @@ def leaderboard(request: HttpRequest):
         score, possible = _score_entry(entry.picks, results)
         rows.append(
             {
+                "id": entry.id,
                 "name": entry.name,
                 "score": score,
                 "possible": possible,
@@ -124,6 +125,61 @@ def leaderboard(request: HttpRequest):
 
     rows.sort(key=lambda item: (-item["score"], item["submitted_at"], item["name"].lower()))
     return JsonResponse({"ok": True, "rows": rows})
+
+
+@require_GET
+def entry_detail(request: HttpRequest, entry_id: int):
+    try:
+        entry = BracketEntry.objects.get(pk=entry_id)
+    except BracketEntry.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "Bracket entry not found."}, status=404)
+
+    if not _validate_rounds(entry.picks):
+        return JsonResponse({"ok": False, "error": "Stored bracket format is invalid."}, status=400)
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "entry": {
+                "id": entry.id,
+                "name": entry.name,
+                "rounds": entry.picks,
+                "submitted_at": entry.created_at.isoformat(),
+            },
+        }
+    )
+
+
+@require_GET
+def entry_readonly(request: HttpRequest, entry_id: int):
+    try:
+        entry = BracketEntry.objects.get(pk=entry_id)
+    except BracketEntry.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "Bracket entry not found."}, status=404)
+
+    if not _validate_rounds(entry.picks):
+        return JsonResponse({"ok": False, "error": "Stored bracket format is invalid."}, status=400)
+
+    initial_teams = []
+    round32_matches = list(
+        Match.objects.filter(round_index=0).select_related('home_team', 'away_team').order_by('match_index')
+    )
+
+    if len(round32_matches) == ROUND_SIZES[0]:
+        for match in round32_matches:
+            initial_teams.append(match.home_team.name if match.home_team else 'TBD')
+            initial_teams.append(match.away_team.name if match.away_team else 'TBD')
+    else:
+        initial_teams = list(DEFAULT_TEAMS)
+
+    return render(
+        request,
+        'bracket/entry_readonly.html',
+        {
+            'entry': entry,
+            'initial_teams': initial_teams,
+        },
+    )
 
 
 @require_GET
