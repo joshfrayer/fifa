@@ -12,9 +12,13 @@ services:
       DJANGO_SECRET_KEY: "change-this-in-portainer"
       DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1"
       DJANGO_CSRF_TRUSTED_ORIGINS: "http://localhost:8000,http://127.0.0.1:8000"
-      DJANGO_DB_PATH: "/app/data/db.sqlite3"
-    volumes:
-      - fifa_data:/app/data
-
-volumes:
-  fifa_data:
+      BRACKET_ADMIN_CODE: "change-me"
+      DJANGO_DB_HOST: "10.45.67.52"
+      DJANGO_DB_PORT: "5432"
+      DJANGO_DB_NAME: "fifa"
+      DJANGO_DB_USER: "fifa_user"
+      DJANGO_DB_PASSWORD: "change-me"
+      DJANGO_DB_CONN_MAX_AGE: "60"
+      DJANGO_SUPERUSER_USERNAME: "admin"
+      DJANGO_SUPERUSER_EMAIL: "admin@example.com"
+      DJANGO_SUPERUSER_PASSWORD: "change-me"

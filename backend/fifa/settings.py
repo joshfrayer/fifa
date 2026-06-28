@@ -28,6 +28,16 @@ def env_list(key: str, default: list[str]) -> list[str]:
     return [item.strip() for item in value.split(',') if item.strip()]
 
 
+def env_int(key: str, default: int) -> int:
+    value = os.getenv(key)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env_bool('DJANGO_DEBUG', True)
 
@@ -80,12 +90,30 @@ WSGI_APPLICATION = 'fifa.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.getenv('DJANGO_DB_PATH', BASE_DIR / 'db.sqlite3'),
+db_name = os.getenv('DJANGO_DB_NAME') or os.getenv('POSTGRES_DB')
+db_user = os.getenv('DJANGO_DB_USER') or os.getenv('POSTGRES_USER')
+db_password = os.getenv('DJANGO_DB_PASSWORD') or os.getenv('POSTGRES_PASSWORD')
+db_host = os.getenv('DJANGO_DB_HOST')
+
+if db_name and db_user and db_host:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': db_name,
+            'USER': db_user,
+            'PASSWORD': db_password or '',
+            'HOST': db_host,
+            'PORT': os.getenv('DJANGO_DB_PORT', '5432'),
+            'CONN_MAX_AGE': env_int('DJANGO_DB_CONN_MAX_AGE', 60),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.getenv('DJANGO_DB_PATH', BASE_DIR / 'db.sqlite3'),
+        }
+    }
 
 
 # Password validation
