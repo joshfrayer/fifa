@@ -183,6 +183,78 @@ function renderLeaderboardRows(body, rows) {
     .join("");
 }
 
+function initRoundWizard() {
+  const layout = document.getElementById("mobileLayout");
+  const wizard = document.getElementById("roundWizard");
+  const stageEl = document.getElementById("wizardStage");
+  const prevBtn = document.getElementById("wizardPrev");
+  const nextBtn = document.getElementById("wizardNext");
+
+  if (!layout || !wizard || !stageEl || !prevBtn || !nextBtn) return;
+
+  const stages = ["r32", "r16", "qf", "sf", "final"];
+  const labels = {
+    r32: "Round of 32",
+    r16: "Round of 16",
+    qf: "Quarterfinal",
+    sf: "Semifinal",
+    final: "Final",
+  };
+
+  let currentIndex = 0;
+
+  function applyStep() {
+    const step = stages[currentIndex];
+    layout.dataset.roundStep = step;
+    stageEl.textContent = labels[step];
+    prevBtn.disabled = currentIndex === 0;
+    nextBtn.disabled = currentIndex === stages.length - 1;
+  }
+
+  prevBtn.addEventListener("click", () => {
+    if (currentIndex > 0) {
+      currentIndex -= 1;
+      applyStep();
+    }
+  });
+
+  nextBtn.addEventListener("click", () => {
+    if (currentIndex < stages.length - 1) {
+      currentIndex += 1;
+      applyStep();
+    }
+  });
+
+  applyStep();
+}
+
+function setChampionLabels(champion) {
+  const display = champion && champion !== "TBD" ? getFifaCode(champion) : "TBD";
+  const flagUrl = champion && champion !== "TBD" ? getFlagUrl(champion) : null;
+
+  const winner = document.getElementById("winner");
+  const mobileWinner = document.getElementById("mobile-winner");
+  const winnerFlag = document.getElementById("winner-flag");
+  const mobileWinnerFlag = document.getElementById("mobile-winner-flag");
+
+  if (winner) winner.textContent = display;
+  if (mobileWinner) mobileWinner.textContent = display;
+
+  [winnerFlag, mobileWinnerFlag].forEach((img) => {
+    if (!img) return;
+
+    if (flagUrl) {
+      img.src = flagUrl;
+      img.alt = `${champion} flag`;
+      img.hidden = false;
+    } else {
+      img.src = "";
+      img.alt = "";
+      img.hidden = true;
+    }
+  });
+}
+
 async function refreshLeaderboardBody(body) {
   if (!body) return;
 
@@ -278,9 +350,14 @@ function initIndexPage() {
     renderRoundSliceInteractive(state, getTeamsForRound, "right-sf", 3, 1, 1, setWinner);
     renderRoundSliceInteractive(state, getTeamsForRound, "final", 4, 0, 1, setWinner);
 
+    renderRoundSliceInteractive(state, getTeamsForRound, "mobile-r32", 0, 0, 16, setWinner);
+    renderRoundSliceInteractive(state, getTeamsForRound, "mobile-r16", 1, 0, 8, setWinner);
+    renderRoundSliceInteractive(state, getTeamsForRound, "mobile-qf", 2, 0, 4, setWinner);
+    renderRoundSliceInteractive(state, getTeamsForRound, "mobile-sf", 3, 0, 2, setWinner);
+    renderRoundSliceInteractive(state, getTeamsForRound, "mobile-final", 4, 0, 1, setWinner);
+
     const champion = state.rounds[4][0] || "TBD";
-    const winner = document.getElementById("winner");
-    if (winner) winner.textContent = champion;
+    setChampionLabels(champion);
   }
 
   function applyOfficialResultsToState() {
@@ -402,6 +479,7 @@ function initIndexPage() {
 
   loadState();
   renderAll();
+  initRoundWizard();
   refreshLeaderboard();
   loadOfficialResults();
 }
@@ -441,9 +519,16 @@ function initReadonlyPage() {
   renderRoundSliceReadonly(rounds, teamsForRound, "right-sf", 3, 1, 1);
   renderRoundSliceReadonly(rounds, teamsForRound, "final", 4, 0, 1);
 
+  renderRoundSliceReadonly(rounds, teamsForRound, "mobile-r32", 0, 0, 16);
+  renderRoundSliceReadonly(rounds, teamsForRound, "mobile-r16", 1, 0, 8);
+  renderRoundSliceReadonly(rounds, teamsForRound, "mobile-qf", 2, 0, 4);
+  renderRoundSliceReadonly(rounds, teamsForRound, "mobile-sf", 3, 0, 2);
+  renderRoundSliceReadonly(rounds, teamsForRound, "mobile-final", 4, 0, 1);
+
   const champion = (rounds[4] || [])[0] || "TBD";
-  const winner = document.getElementById("winner");
-  if (winner) winner.textContent = champion;
+  setChampionLabels(champion);
+
+  initRoundWizard();
 }
 
 document.addEventListener("DOMContentLoaded", () => {

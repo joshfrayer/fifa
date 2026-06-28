@@ -20,24 +20,61 @@
       </div>
     </div>
 
-    <div class="layout">
-      <section class="round r32">
+    <div class="round-wizard" id="roundWizard" aria-label="Round wizard">
+      <button id="wizardPrev" class="icon-button" type="button" aria-label="Previous round">&#x2039;</button>
+      <div id="wizardStage" class="wizard-stage">Round of 32</div>
+      <button id="wizardNext" class="icon-button" type="button" aria-label="Next round">&#x203A;</button>
+    </div>
+
+    <div class="layout-mobile" id="mobileLayout" data-round-step="r32">
+      <section class="round" data-stage="r32">
+        <h2>Round of 32</h2>
+        <div class="matches tight" id="mobile-r32"></div>
+      </section>
+      <section class="round" data-stage="r16">
+        <h2>Round of 16</h2>
+        <div class="matches medium" id="mobile-r16"></div>
+      </section>
+      <section class="round" data-stage="qf">
+        <h2>Quarterfinal</h2>
+        <div class="matches loose" id="mobile-qf"></div>
+      </section>
+      <section class="round" data-stage="sf">
+        <h2>Semifinal</h2>
+        <div class="matches medium" id="mobile-sf"></div>
+      </section>
+      <section class="final-col" data-stage="final">
+        <section class="round" style="min-height: auto;">
+          <h2>Final</h2>
+          <div class="matches single" id="mobile-final"></div>
+        </section>
+        <section class="champion" style="min-height: auto;">
+          <div class="cup">🏆</div>
+          <div style="color: var(--muted); margin-bottom: 0.35rem;">Predicted Champion</div>
+          <img id="mobile-winner-flag" class="champion-flag" src="" alt="" hidden>
+          <div class="winner" id="mobile-winner">TBD</div>
+        </section>
+      </section>
+    </div>
+
+    <div class="layout" data-round-step="r32">
+      <section class="round r32" data-stage="r32">
         <h2>Round of 32</h2>
         <div class="matches tight" id="left-r32"></div>
       </section>
-      <section class="round r16">
+      <section class="round r16" data-stage="r16">
         <h2>Round of 16</h2>
         <div class="matches medium" id="left-r16"></div>
       </section>
-      <section class="round qf">
+      <section class="round qf" data-stage="qf">
         <h2>Quarterfinal</h2>
         <div class="matches loose" id="left-qf"></div>
       </section>
-      <section class="round sf">
+      <section class="round sf" data-stage="sf">
         <h2>Semifinal</h2>
         <div class="matches single" id="left-sf"></div>
       </section>
-      <section class="final-col">
+      <section class="final-col" data-stage="final">
         <section class="round" style="min-height: auto;">
           <h2>Final</h2>
           <div class="matches single" id="final"></div>
@@ -45,22 +82,23 @@
         <section class="champion" style="min-height: auto;">
           <div class="cup">🏆</div>
           <div style="color: var(--muted); margin-bottom: 0.35rem;">Predicted Champion</div>
+          <img id="winner-flag" class="champion-flag" src="" alt="" hidden>
           <div class="winner" id="winner">TBD</div>
         </section>
       </section>
-      <section class="round sf">
+      <section class="round sf" data-stage="sf">
         <h2>Semifinal</h2>
         <div class="matches single" id="right-sf"></div>
       </section>
-      <section class="round qf">
+      <section class="round qf" data-stage="qf">
         <h2>Quarterfinal</h2>
         <div class="matches loose" id="right-qf"></div>
       </section>
-      <section class="round r16">
+      <section class="round r16" data-stage="r16">
         <h2>Round of 16</h2>
         <div class="matches medium" id="right-r16"></div>
       </section>
-      <section class="round r32">
+      <section class="round r32" data-stage="r32">
         <h2>Round of 32</h2>
         <div class="matches tight" id="right-r32"></div>
       </section>

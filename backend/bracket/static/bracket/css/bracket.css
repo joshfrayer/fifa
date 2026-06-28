@@ -162,6 +162,24 @@ button:disabled {
   padding-bottom: 0.75rem;
 }
 
+.layout-mobile {
+  display: none;
+}
+
+.round-wizard {
+  display: none;
+}
+
+.wizard-stage {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #214532;
+  font-size: 0.8rem;
+  min-width: 9.5rem;
+  text-align: center;
+}
+
 .round {
   background: color-mix(in srgb, var(--card) 86%, #edf2f7 14%);
   border: 1px solid var(--line);
@@ -271,6 +289,16 @@ button:disabled {
   background: var(--accent-soft);
   border: 1px solid #9fd8c4;
   min-width: 70%;
+}
+
+.champion-flag {
+  width: 34px;
+  height: 24px;
+  border-radius: 2px;
+  border: 1px solid #cfd7df;
+  object-fit: cover;
+  background: #eef3f8;
+  margin-bottom: 0.35rem;
 }
 
 .panels {
@@ -418,7 +446,57 @@ body.leaderboard-page {
   margin: 0 auto;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 900px) and (orientation: portrait) {
+  .round-wizard {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--line);
+    border-radius: 0.35rem;
+    padding: 0.45rem;
+  }
+
+  .round-wizard .icon-button {
+    width: 2.2rem;
+    height: 2rem;
+    font-size: 1.2rem;
+    color: #1f4d38;
+  }
+
+  .layout {
+    display: none;
+  }
+
+  .layout-mobile {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    overflow-x: hidden;
+    padding-bottom: 0.95rem;
+  }
+
+  .layout-mobile > section {
+    min-width: 0;
+  }
+
+  .layout-mobile[data-round-step="r32"] > section:not([data-stage="r32"]),
+  .layout-mobile[data-round-step="r16"] > section:not([data-stage="r16"]),
+  .layout-mobile[data-round-step="qf"] > section:not([data-stage="qf"]),
+  .layout-mobile[data-round-step="sf"] > section:not([data-stage="sf"]),
+  .layout-mobile[data-round-step="final"] > section:not([data-stage="final"]) {
+    display: none;
+  }
+
+  .panels {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+@media (max-width: 900px) and (orientation: landscape) {
   .layout { grid-template-columns: 1fr; }
   .panels { grid-template-columns: 1fr; }
 }
