@@ -1,7 +1,7 @@
 services:
   web:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
     container_name: fifa_wc_bracket
     restart: unless-stopped
