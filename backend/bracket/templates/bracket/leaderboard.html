@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% load static %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WC 2026 Leaderboard</title>
+  <link rel="stylesheet" href="{% static 'bracket/css/bracket.css' %}">
+</head>
+<body class="bracket-page leaderboard-page" data-page="leaderboard">
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <h1>Leaderboard</h1>
+        <div class="subtitle">Submitted brackets ranked by current score.</div>
+      </div>
+      <div class="controls">
+        <a href="/" class="view-btn">Back to Bracket</a>
+      </div>
+    </div>
+
+    <section class="panel leaderboard-page-panel leaderboard-panel">
+      <h3>Current Standings</h3>
+      <button id="refreshLeaderboard" class="icon-button leaderboard-refresh" type="button" aria-label="Refresh leaderboard" title="Refresh leaderboard">&#x21bb;</button>
+      <table class="leaderboard">
+        <thead>
+          <tr><th>#</th><th>Name</th><th>Score</th><th>View</th></tr>
+        </thead>
+        <tbody id="leaderboardBody">
+          <tr><td colspan="4">No submissions yet.</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <script src="{% static 'bracket/js/bracket.js' %}"></script>
+</body>
+</html>

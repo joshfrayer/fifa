@@ -19,6 +19,10 @@ def default_rounds():
     return [row[:] for row in EMPTY_ROUNDS]
 
 
+def default_eligible_mask():
+    return [[True] * size for size in ROUND_SIZES]
+
+
 class Team(models.Model):
     name = models.CharField(max_length=80, unique=True)
 
@@ -106,6 +110,7 @@ class Match(models.Model):
 class BracketEntry(models.Model):
     name = models.CharField(max_length=80, unique=True)
     picks = models.JSONField(default=list)
+    eligible_mask = models.JSONField(default=default_eligible_mask)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:

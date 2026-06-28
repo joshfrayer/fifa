@@ -4,6 +4,7 @@ from . import views
 
 urlpatterns = [
     path('', views.index, name='wc2026-bracket'),
+    path('leaderboard/', views.leaderboard_page, name='wc2026-leaderboard-page'),
     path('entry/<int:entry_id>/', views.entry_readonly, name='wc2026-entry-readonly'),
     path('api/submit-entry/', views.submit_entry, name='wc2026-submit-entry'),
     path('api/leaderboard/', views.leaderboard, name='wc2026-leaderboard'),

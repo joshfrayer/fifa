@@ -18,6 +18,10 @@ def _empty_rounds() -> list[list[str | None]]:
     return [[None] * size for size in ROUND_SIZES]
 
 
+def _default_eligible_mask() -> list[list[bool]]:
+    return [[True] * size for size in ROUND_SIZES]
+
+
 def _normalize_pick(value):
     if value in (None, "", "TBD"):
         return None
@@ -40,17 +44,30 @@ def _sanitize_rounds(rounds):
     return [[_normalize_pick(pick) for pick in row] for row in rounds]
 
 
+def _validate_mask(mask):
+    if not isinstance(mask, list) or len(mask) != len(ROUND_SIZES):
+        return False
+
+    for idx, size in enumerate(ROUND_SIZES):
+        if not isinstance(mask[idx], list) or len(mask[idx]) != size:
+            return False
+        if not all(isinstance(value, bool) for value in mask[idx]):
+            return False
+    return True
+
+
 def _is_complete(rounds):
     return all(all(pick for pick in row) for row in rounds)
 
 
-def _score_entry(picks, results):
+def _score_entry(picks, results, eligible_mask):
     score = 0
     possible_scored = 0
 
     for round_index, points in enumerate(ROUND_POINTS):
         for match_index, winner in enumerate(results[round_index]):
-            if winner:
+            is_eligible = eligible_mask[round_index][match_index]
+            if winner and is_eligible:
                 possible_scored += points
                 if picks[round_index][match_index] == winner:
                     score += points
@@ -73,7 +90,24 @@ def _official_rounds_from_matches():
 
 @ensure_csrf_cookie
 def index(request):
-    return render(request, 'bracket/index.html')
+    teams = []
+    round32_matches = list(
+        Match.objects.filter(round_index=0).select_related('home_team', 'away_team').order_by('match_index')
+    )
+
+    if len(round32_matches) == ROUND_SIZES[0]:
+        for match in round32_matches:
+            teams.append(match.home_team.name if match.home_team else 'TBD')
+            teams.append(match.away_team.name if match.away_team else 'TBD')
+    else:
+        teams = list(DEFAULT_TEAMS)
+
+    return render(request, 'bracket/index.html', {'teams': teams})
+
+
+@require_GET
+def leaderboard_page(request: HttpRequest):
+    return render(request, 'bracket/leaderboard.html')
 
 
 @require_POST
@@ -94,13 +128,22 @@ def submit_entry(request: HttpRequest):
         return JsonResponse({"ok": False, "error": "Bracket data is invalid."}, status=400)
 
     rounds = _sanitize_rounds(rounds)
+
+    official_rounds = _official_rounds_from_matches()
+    eligible_mask = _default_eligible_mask()
+    for round_index, row in enumerate(official_rounds):
+        for match_index, winner in enumerate(row):
+            if winner:
+                eligible_mask[round_index][match_index] = False
+                rounds[round_index][match_index] = winner
+
     if not _is_complete(rounds):
         return JsonResponse({"ok": False, "error": "Complete all picks before submitting."}, status=400)
 
     if BracketEntry.objects.filter(name__iexact=name).exists():
         return JsonResponse({"ok": False, "error": "That name already has a submitted bracket."}, status=400)
 
-    BracketEntry.objects.create(name=name, picks=rounds)
+    BracketEntry.objects.create(name=name, picks=rounds, eligible_mask=eligible_mask)
     return JsonResponse({"ok": True})
 
 
@@ -112,7 +155,12 @@ def leaderboard(request: HttpRequest):
     for entry in BracketEntry.objects.order_by("created_at"):
         if not _validate_rounds(entry.picks):
             continue
-        score, possible = _score_entry(entry.picks, results)
+
+        eligible_mask = entry.eligible_mask
+        if not _validate_mask(eligible_mask):
+            eligible_mask = _default_eligible_mask()
+
+        score, possible = _score_entry(entry.picks, results, eligible_mask)
         rows.append(
             {
                 "id": entry.id,
