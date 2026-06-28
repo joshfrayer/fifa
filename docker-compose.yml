@@ -1,0 +1,20 @@
+services:
+  web:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fifa_wc_bracket
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DJANGO_DEBUG: "False"
+      DJANGO_SECRET_KEY: "change-this-in-portainer"
+      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1"
+      DJANGO_CSRF_TRUSTED_ORIGINS: "http://localhost:8000,http://127.0.0.1:8000"
+      DJANGO_DB_PATH: "/app/data/db.sqlite3"
+    volumes:
+      - fifa_data:/app/data
+
+volumes:
+  fifa_data:

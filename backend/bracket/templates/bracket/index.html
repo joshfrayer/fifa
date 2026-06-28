@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FIFA World Cup 2026 Bracket</title>
+  <style>
+    :root {
+      --bg: #f3f5f7;
+      --card: #ffffff;
+      --line: #d8dde3;
+      --text: #17212b;
+      --muted: #607182;
+      --accent: #0b6e4f;
+      --accent-soft: #d8f4ea;
+      --danger: #9f2d2d;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 10% 10%, #e9f7f2 0%, transparent 30%),
+        radial-gradient(circle at 90% 90%, #eaf0f7 0%, transparent 35%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      width: min(1280px, 95vw);
+      margin: 2rem auto;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.3rem, 2.5vw, 2.1rem);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      margin-top: 0.4rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .controls {
+      display: flex;
+      gap: 0.6rem;
+      align-items: center;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--text);
+      font-weight: 600;
+      padding: 0.55rem 0.9rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(10, 20, 30, 0.08);
+    }
+
+    .danger {
+      border-color: #e7c1c1;
+      color: var(--danger);
+    }
+
+    .accent {
+      border-color: #9fd8c4;
+      color: #0d503b;
+      background: #ebf8f2;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(165px, 1fr));
+      gap: 0.85rem;
+      align-items: start;
+      overflow-x: auto;
+      padding-bottom: 0.75rem;
+    }
+
+    .round {
+      background: color-mix(in srgb, var(--card) 92%, #edf2f7 8%);
+      border: 1px solid var(--line);
+      border-radius: 0.8rem;
+      padding: 0.6rem;
+      min-height: 500px;
+    }
+
+    .round h2 {
+      margin: 0 0 0.8rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .matches {
+      display: grid;
+      gap: 0.7rem;
+    }
+
+    .match {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 0.6rem;
+      padding: 0.35rem;
+      display: grid;
+      gap: 0.35rem;
+      box-shadow: 0 4px 12px rgba(19, 30, 42, 0.03);
+    }
+
+    .team {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 0.45rem;
+      padding: 0.3rem 0.4rem;
+      font-size: 0.82rem;
+      background: #fdfefe;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .flag {
+      width: 18px;
+      height: 13px;
+      border-radius: 2px;
+      border: 1px solid #cfd7df;
+      object-fit: cover;
+      flex: 0 0 auto;
+      background: #eef3f8;
+    }
+
+    .team-label {
+      line-height: 1.2;
+    }
+
+    .team.selected {
+      background: var(--accent-soft);
+      border-color: #9fd8c4;
+      color: #0d503b;
+      font-weight: 700;
+    }
+
+    .team.disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .champion {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      min-height: 500px;
+      background:
+        linear-gradient(145deg, #f8fafb 0%, #eef4f8 100%);
+      border: 1px solid var(--line);
+      border-radius: 0.8rem;
+      padding: 1rem;
+    }
+
+    .cup {
+      font-size: 3rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .winner {
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      padding: 0.5rem 0.8rem;
+      border-radius: 0.6rem;
+      background: var(--accent-soft);
+      border: 1px solid #9fd8c4;
+      min-width: 70%;
+    }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .round, .champion { min-height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <h1>FIFA World Cup 2026 Bracket</h1>
+        <div class="subtitle">Click a team in each matchup to advance winners. Picks save in your browser.</div>
+      </div>
+      <div class="controls">
+        <button id="randomize">Randomize</button>
+        <button id="reset" class="danger">Reset</button>
+        <button id="finalize" class="accent">Finalize</button>
+      </div>
+    </div>
+
+    <div class="layout">
+      <section class="round">
+        <h2>Round of 32</h2>
+        <div class="matches" id="r32"></div>
+      </section>
+      <section class="round">
+        <h2>Round of 16</h2>
+        <div class="matches" id="r16"></div>
+      </section>
+      <section class="round">
+        <h2>Quarterfinals</h2>
+        <div class="matches" id="qf"></div>
+      </section>
+      <section class="round">
+        <h2>Semifinals</h2>
+        <div class="matches" id="sf"></div>
+      </section>
+      <section class="round">
+        <h2>Final</h2>
+        <div class="matches" id="final"></div>
+      </section>
+      <section class="champion">
+        <div class="cup">🏆</div>
+        <div style="color: var(--muted); margin-bottom: 0.35rem;">Predicted Champion</div>
+        <div class="winner" id="winner">TBD</div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const TEAMS = [
+      "South Africa", "Canada", "Netherlands", "Morocco",
+      "Germany", "Paraguay", "France", "Sweden",
+      "Belgium", "Senegal", "United States", "Bosnia and Herzegovina",
+      "Spain", "Austria", "Portugal", "Croatia",
+      "Brazil", "Japan", "Ivory Coast", "Norway",
+      "Mexico", "Ecuador", "England", "DR Congo",
+      "Switzerland", "Algeria", "Colombia", "Ghana",
+      "Argentina", "Cabo Verde", "Australia", "Eqypt"
+    ];
+
+    const STORAGE_KEY = "wc2026_quick_bracket";
+    const LOCK_STORAGE_KEY = "wc2026_quick_bracket_locked";
+    const FLAG_CDN_BASE = "https://flagcdn.com";
+
+    const COUNTRY_TO_ISO2 = {
+      "south africa": "za",
+      "canada": "ca",
+      "netherlands": "nl",
+      "morocco": "ma",
+      "germany": "de",
+      "paraguay": "py",
+      "france": "fr",
+      "sweden": "se",
+      "belgium": "be",
+      "senegal": "sn",
+      "united states": "us",
+      "usa": "us",
+      "bosnia and herzegovina": "ba",
+      "bosnia": "ba",
+      "spain": "es",
+      "austria": "at",
+      "portugal": "pt",
+      "croatia": "hr",
+      "brazil": "br",
+      "japan": "jp",
+      "ivory coast": "ci",
+      "cote d'ivoire": "ci",
+      "cote divoire": "ci",
+      "norway": "no",
+      "mexico": "mx",
+      "ecuador": "ec",
+      "england": "gb-eng",
+      "dr congo": "cd",
+      "democratic republic of the congo": "cd",
+      "switzerland": "ch",
+      "algeria": "dz",
+      "colombia": "co",
+      "ghana": "gh",
+      "argentina": "ar",
+      "cabo verde": "cv",
+      "cape verde": "cv",
+      "australia": "au",
+      "egypt": "eg",
+      "eqypt": "eg"
+    };
+
+    const COUNTRY_TO_FIFA3 = {
+      "south africa": "RSA",
+      "canada": "CAN",
+      "netherlands": "NED",
+      "morocco": "MAR",
+      "germany": "GER",
+      "paraguay": "PAR",
+      "france": "FRA",
+      "sweden": "SWE",
+      "belgium": "BEL",
+      "senegal": "SEN",
+      "united states": "USA",
+      "usa": "USA",
+      "bosnia and herzegovina": "BIH",
+      "bosnia": "BIH",
+      "spain": "ESP",
+      "austria": "AUT",
+      "portugal": "POR",
+      "croatia": "CRO",
+      "brazil": "BRA",
+      "japan": "JPN",
+      "ivory coast": "CIV",
+      "cote d'ivoire": "CIV",
+      "cote divoire": "CIV",
+      "norway": "NOR",
+      "mexico": "MEX",
+      "ecuador": "ECU",
+      "england": "ENG",
+      "dr congo": "COD",
+      "democratic republic of the congo": "COD",
+      "switzerland": "SUI",
+      "algeria": "ALG",
+      "colombia": "COL",
+      "ghana": "GHA",
+      "argentina": "ARG",
+      "cabo verde": "CPV",
+      "cape verde": "CPV",
+      "australia": "AUS",
+      "egypt": "EGY",
+      "eqypt": "EGY"
+    };
+
+    const state = {
+      finalized: false,
+      rounds: [
+        Array(16).fill(null),
+        Array(8).fill(null),
+        Array(4).fill(null),
+        Array(2).fill(null),
+        Array(1).fill(null),
+      ]
+    };
+
+    function normalizeCountryName(name) {
+      return (name || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9' ]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function getFlagCode(teamName) {
+      const normalized = normalizeCountryName(teamName);
+      return COUNTRY_TO_ISO2[normalized] || null;
+    }
+
+    function getFlagUrl(teamName) {
+      const code = getFlagCode(teamName);
+      return code ? `${FLAG_CDN_BASE}/${code}.svg` : null;
+    }
+
+    function getFifaCode(teamName) {
+      const normalized = normalizeCountryName(teamName);
+      return COUNTRY_TO_FIFA3[normalized] || teamName;
+    }
+
+    function getTeamsForRound(roundIndex) {
+      if (roundIndex === 0) return TEAMS;
+      const prevWinners = state.rounds[roundIndex - 1];
+      const teams = [];
+      for (let i = 0; i < prevWinners.length; i += 1) {
+        teams.push(prevWinners[i] || "TBD");
+      }
+      return teams;
+    }
+
+    function setWinner(roundIndex, matchIndex, team) {
+      if (state.finalized) return;
+      state.rounds[roundIndex][matchIndex] = team;
+
+      // If a winner in an earlier round changes, clear dependent picks downstream.
+      for (let r = roundIndex + 1; r < state.rounds.length; r += 1) {
+        const dependentMatch = Math.floor(matchIndex / Math.pow(2, r - roundIndex));
+        state.rounds[r][dependentMatch] = null;
+      }
+
+      saveState();
+      renderAll();
+    }
+
+    function renderRound(containerId, roundIndex) {
+      const container = document.getElementById(containerId);
+      const teams = getTeamsForRound(roundIndex);
+      container.innerHTML = "";
+
+      for (let i = 0; i < teams.length; i += 2) {
+        const matchIndex = i / 2;
+        const selected = state.rounds[roundIndex][matchIndex];
+
+        const match = document.createElement("div");
+        match.className = "match";
+
+        [teams[i], teams[i + 1]].forEach((team) => {
+          const btn = document.createElement("button");
+          btn.className = "team";
+          const flagUrl = getFlagUrl(team);
+          const fifaCode = getFifaCode(team);
+
+          if (flagUrl) {
+            const flag = document.createElement("img");
+            flag.className = "flag";
+            flag.src = flagUrl;
+            flag.alt = `${team} flag`;
+            flag.loading = "lazy";
+            flag.referrerPolicy = "no-referrer";
+            flag.addEventListener("error", () => flag.remove());
+            btn.appendChild(flag);
+          }
+
+          const label = document.createElement("span");
+          label.className = "team-label";
+          label.textContent = team && team !== "TBD" ? fifaCode : "TBD";
+          btn.appendChild(label);
+
+          if (!team || team === "TBD") {
+            btn.classList.add("disabled");
+            btn.disabled = true;
+          } else {
+            btn.title = team;
+            btn.setAttribute("aria-label", `${team} (${fifaCode})`);
+            if (state.finalized) {
+              btn.classList.add("disabled");
+              btn.disabled = true;
+            } else {
+              btn.addEventListener("click", () => setWinner(roundIndex, matchIndex, team));
+            }
+          }
+
+          if (selected === team) btn.classList.add("selected");
+          match.appendChild(btn);
+        });
+
+        container.appendChild(match);
+      }
+    }
+
+    function renderAll() {
+      renderRound("r32", 0);
+      renderRound("r16", 1);
+      renderRound("qf", 2);
+      renderRound("sf", 3);
+      renderRound("final", 4);
+
+      const champion = state.rounds[4][0] || "TBD";
+      document.getElementById("winner").textContent = champion;
+      updateControls();
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.rounds));
+      localStorage.setItem(LOCK_STORAGE_KEY, String(state.finalized));
+    }
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (
+          Array.isArray(saved) &&
+          saved.length === 5 &&
+          saved[0].length === 16 &&
+          saved[1].length === 8 &&
+          saved[2].length === 4 &&
+          saved[3].length === 2 &&
+          saved[4].length === 1
+        ) {
+          state.rounds = saved;
+        }
+
+        state.finalized = localStorage.getItem(LOCK_STORAGE_KEY) === "true";
+      } catch (_err) {
+        // Ignore malformed localStorage data.
+      }
+    }
+
+    function resetBracket() {
+      if (state.finalized) return;
+      state.rounds = [
+        Array(16).fill(null),
+        Array(8).fill(null),
+        Array(4).fill(null),
+        Array(2).fill(null),
+        Array(1).fill(null),
+      ];
+      saveState();
+      renderAll();
+    }
+
+    function randomizeBracket() {
+      if (state.finalized) return;
+      resetBracket();
+      for (let r = 0; r < 5; r += 1) {
+        const teams = getTeamsForRound(r);
+        for (let i = 0; i < teams.length; i += 2) {
+          const pick = Math.random() > 0.5 ? teams[i] : teams[i + 1];
+          if (pick && pick !== "TBD") {
+            state.rounds[r][i / 2] = pick;
+          }
+        }
+      }
+      saveState();
+      renderAll();
+    }
+
+    function updateControls() {
+      const randomizeBtn = document.getElementById("randomize");
+      const resetBtn = document.getElementById("reset");
+      const finalizeBtn = document.getElementById("finalize");
+
+      randomizeBtn.disabled = state.finalized;
+      resetBtn.disabled = state.finalized;
+      finalizeBtn.disabled = state.finalized;
+      finalizeBtn.textContent = state.finalized ? "Finalized" : "Finalize";
+      finalizeBtn.title = state.finalized ? "Bracket is locked." : "Lock this bracket so picks cannot be changed.";
+    }
+
+    function finalizeBracket() {
+      if (state.finalized) return;
+
+      const confirmed = window.confirm("Finalize this bracket? This will lock all picks on this device/browser.");
+      if (!confirmed) return;
+
+      state.finalized = true;
+      saveState();
+      renderAll();
+    }
+
+    document.getElementById("reset").addEventListener("click", resetBracket);
+    document.getElementById("randomize").addEventListener("click", randomizeBracket);
+    document.getElementById("finalize").addEventListener("click", finalizeBracket);
+
+    loadState();
+    renderAll();
+  </script>
+</body>
+</html>
