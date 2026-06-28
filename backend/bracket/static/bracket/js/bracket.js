@@ -73,6 +73,7 @@ function renderRoundSliceInteractive(state, teamsForRound, containerId, roundInd
   const container = document.getElementById(containerId);
   if (!container) return;
 
+  const isMobileContainer = containerId.startsWith("mobile-");
   const teams = teamsForRound(roundIndex);
   container.innerHTML = "";
 
@@ -88,6 +89,7 @@ function renderRoundSliceInteractive(state, teamsForRound, containerId, roundInd
       btn.className = "team";
       const flagUrl = getFlagUrl(team);
       const fifaCode = getFifaCode(team);
+      const labelText = team && team !== "TBD" ? (isMobileContainer ? team : fifaCode) : "TBD";
       const isLockedMatch = state.officialRounds[roundIndex][matchIndex] !== null;
 
       if (flagUrl) {
@@ -103,7 +105,7 @@ function renderRoundSliceInteractive(state, teamsForRound, containerId, roundInd
 
       const label = document.createElement("span");
       label.className = "team-label";
-      label.textContent = team && team !== "TBD" ? fifaCode : "TBD";
+      label.textContent = labelText;
       btn.appendChild(label);
 
       if (!team || team === "TBD") {
@@ -132,6 +134,7 @@ function renderRoundSliceReadonly(rounds, teamsForRound, containerId, roundIndex
   const container = document.getElementById(containerId);
   if (!container) return;
 
+  const isMobileContainer = containerId.startsWith("mobile-");
   const teams = teamsForRound(roundIndex);
   container.innerHTML = "";
 
@@ -159,7 +162,7 @@ function renderRoundSliceReadonly(rounds, teamsForRound, containerId, roundIndex
       }
 
       const label = document.createElement("span");
-      label.textContent = team && team !== "TBD" ? getFifaCode(team) : "TBD";
+      label.textContent = team && team !== "TBD" ? (isMobileContainer ? team : getFifaCode(team)) : "TBD";
       row.appendChild(label);
 
       if (selected === team) row.classList.add("selected");
