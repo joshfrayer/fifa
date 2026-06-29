@@ -4,6 +4,7 @@ import os
 from django.db import transaction
 from django.http import HttpRequest, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
@@ -111,6 +112,7 @@ def leaderboard_page(request: HttpRequest):
 
 
 @require_POST
+@csrf_exempt
 def submit_entry(request: HttpRequest):
     try:
         payload = json.loads(request.body)

@@ -438,6 +438,87 @@ button:disabled {
   text-decoration: underline;
 }
 
+.leaderboard-pager {
+  margin-top: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  flex-wrap: nowrap;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--line);
+  border-radius: 0.35rem;
+  padding: 0.45rem;
+}
+
+.leaderboard-pager-middle {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.leaderboard-pager-middle label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.leaderboard-pager-center {
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: center;
+}
+
+.leaderboard-pager-right {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.leaderboard-pager-right label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pager-chevron {
+  width: 2.1rem;
+  height: 2rem;
+  font-size: 1.15rem;
+  color: #1f4d38;
+}
+
+.pager-chevron[hidden] {
+ visibility: hidden !important;
+}
+
+@media (max-width: 760px) {
+  .leaderboard-pager {
+    flex-wrap: wrap;
+  }
+
+  .leaderboard-pager-center {
+    order: 2;
+    flex: 1 1 100%;
+  }
+
+  .leaderboard-pager-right {
+    order: 3;
+    margin-left: auto;
+  }
+}
+
+.leaderboard-pager .field {
+  width: auto;
+  margin-bottom: 0;
+  padding: 0.35rem 0.45rem;
+  font-size: 0.82rem;
+}
+
 .head {
   background: rgba(255, 255, 255, 0.94);
   border: 1px solid rgba(216, 221, 227, 0.95);
@@ -474,7 +555,6 @@ body.leaderboard-page {
 }
 
 .leaderboard-page-panel {
-  max-width: 860px;
   margin: 0 auto;
 }
 

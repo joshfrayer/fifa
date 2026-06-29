@@ -1,38 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  {% load static %}
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WC 2026 Leaderboard</title>
-  <link rel="stylesheet" href="{% static 'bracket/css/bracket.css' %}">
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WC 2026 Leaderboard</title>
+    <link rel="stylesheet" href="{% static 'bracket/css/bracket.css' %}">
 </head>
 <body class="bracket-page leaderboard-page" data-page="leaderboard">
-  <div class="wrap">
-    <div class="topbar">
-      <div>
-        <h1>Leaderboard</h1>
-        <div class="subtitle">Submitted brackets ranked by current score.</div>
-      </div>
-      <div class="controls">
-        <a href="/" class="view-btn">Back to Bracket</a>
-      </div>
+    <div class="wrap">
+        <div class="topbar">
+            <div>
+                <h1>Leaderboard</h1>
+                <div class="subtitle">Submitted brackets ranked by current score.</div>
+            </div>
+        </div>
+        <section class="panel leaderboard-page-panel leaderboard-panel">
+            <h3>Current Standings</h3>
+            <button id="refreshLeaderboard" class="icon-button leaderboard-refresh" type="button" aria-label="Refresh leaderboard" title="Refresh leaderboard">&#x21bb;</button>
+            <table class="leaderboard">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Score</th>
+                        <th>View</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboardBody">
+                    <tr><td colspan="4">No submissions yet.</td></tr>
+                </tbody>
+            </table>
+        </section>
+        <div class="leaderboard-pager" id="leaderboardPager">
+            <button id="leaderboardPrev" class="icon-button pager-chevron" type="button" aria-label="Previous leaderboard page" title="Previous">&#x2039;</button>
+            <div class="leaderboard-pager-middle">
+                <label for="leaderboardPageSize">Per page</label>
+                <select id="leaderboardPageSize" class="field">
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+            <button id="leaderboardNext" class="icon-button pager-chevron" type="button" aria-label="Next leaderboard page" title="Next">&#x203A;</button>
+        </div>
     </div>
-
-    <section class="panel leaderboard-page-panel leaderboard-panel">
-      <h3>Current Standings</h3>
-      <button id="refreshLeaderboard" class="icon-button leaderboard-refresh" type="button" aria-label="Refresh leaderboard" title="Refresh leaderboard">&#x21bb;</button>
-      <table class="leaderboard">
-        <thead>
-          <tr><th>#</th><th>Name</th><th>Score</th><th>View</th></tr>
-        </thead>
-        <tbody id="leaderboardBody">
-          <tr><td colspan="4">No submissions yet.</td></tr>
-        </tbody>
-      </table>
-    </section>
-  </div>
-
-  <script src="{% static 'bracket/js/bracket.js' %}"></script>
+    <script src="{% static 'bracket/js/bracket.js' %}"></script>
 </body>
 </html>

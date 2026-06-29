@@ -173,7 +173,7 @@ function renderRoundSliceReadonly(rounds, teamsForRound, containerId, roundIndex
   }
 }
 
-function renderLeaderboardRows(body, rows) {
+function renderLeaderboardRows(body, rows, rankStart = 0) {
   if (!rows.length) {
     body.innerHTML = "<tr><td colspan='4'>No submissions yet.</td></tr>";
     return;
@@ -181,9 +181,15 @@ function renderLeaderboardRows(body, rows) {
 
   body.innerHTML = rows
     .map(
-      (row, idx) => `<tr><td>${idx + 1}</td><td>${escapeHtml(row.name)}</td><td>${row.score}/${row.possible}</td><td><a class=\"view-btn\" href=\"/entry/${row.id}/\">View</a></td></tr>`
+      (row, idx) => `<tr><td>${rankStart + idx + 1}</td><td>${escapeHtml(row.name)}</td><td>${row.score}/${row.possible}</td><td><a class=\"view-btn\" href=\"/entry/${row.id}/\">View</a></td></tr>`
     )
     .join("");
+}
+
+async function fetchLeaderboardRows() {
+  const res = await fetch("/api/leaderboard/");
+  const data = await res.json();
+  return data.rows || [];
 }
 
 function initRoundWizard() {
@@ -210,8 +216,13 @@ function initRoundWizard() {
     const step = stages[currentIndex];
     layout.dataset.roundStep = step;
     stageEl.textContent = labels[step];
-    prevBtn.disabled = currentIndex === 0;
-    nextBtn.disabled = currentIndex === stages.length - 1;
+    const isFirst = currentIndex === 0;
+    const isLast = currentIndex === stages.length - 1;
+
+    prevBtn.style.visibility = isFirst ? "hidden" : "visible";
+    nextBtn.style.visibility = isLast ? "hidden" : "visible";
+    prevBtn.disabled = isFirst;
+    nextBtn.disabled = isLast;
   }
 
   prevBtn.addEventListener("click", () => {
@@ -262,12 +273,12 @@ async function refreshLeaderboardBody(body) {
   if (!body) return;
 
   try {
-    const res = await fetch("/api/leaderboard/");
-    const data = await res.json();
-    const rows = data.rows || [];
+    const rows = await fetchLeaderboardRows();
     renderLeaderboardRows(body, rows);
+    return rows;
   } catch (_err) {
     body.innerHTML = "<tr><td colspan='4'>Unable to load leaderboard.</td></tr>";
+    return [];
   }
 }
 
@@ -429,7 +440,17 @@ function initIndexPage() {
 
   function refreshLeaderboard() {
     const body = document.getElementById("leaderboardBody");
-    return refreshLeaderboardBody(body);
+    if (!body) return Promise.resolve([]);
+
+    return fetchLeaderboardRows()
+      .then((rows) => {
+        renderLeaderboardRows(body, rows.slice(0, 5), 0);
+        return rows;
+      })
+      .catch(() => {
+        body.innerHTML = "<tr><td colspan='4'>Unable to load leaderboard.</td></tr>";
+        return [];
+      });
   }
 
   async function submitEntry() {
@@ -457,10 +478,19 @@ function initIndexPage() {
         },
         body: JSON.stringify({ name, rounds: state.rounds }),
       });
-      const data = await res.json();
 
-      if (!res.ok || !data.ok) {
-        status.textContent = data.error || "Submission failed.";
+      const contentType = res.headers.get("content-type") || "";
+      let data = null;
+      if (contentType.includes("application/json")) {
+        data = await res.json();
+      }
+
+      if (!res.ok || !data || !data.ok) {
+        if (data && data.error) {
+          status.textContent = data.error;
+        } else {
+          status.textContent = `Submission failed (HTTP ${res.status}).`;
+        }
         return;
       }
 
@@ -490,12 +520,75 @@ function initIndexPage() {
 function initLeaderboardPage() {
   const body = document.getElementById("leaderboardBody");
   const refreshBtn = document.getElementById("refreshLeaderboard");
+  const pageSizeSelect = document.getElementById("leaderboardPageSize");
+  const prevBtn = document.getElementById("leaderboardPrev");
+  const nextBtn = document.getElementById("leaderboardNext");
 
-  if (refreshBtn) {
-    refreshBtn.addEventListener("click", () => refreshLeaderboardBody(body));
+  const state = {
+    rows: [],
+    page: 1,
+    pageSize: pageSizeSelect ? Number(pageSizeSelect.value) : 10,
+  };
+
+  function renderPage() {
+    if (!body) return;
+
+    const totalRows = state.rows.length;
+    const totalPages = Math.max(1, Math.ceil(totalRows / state.pageSize));
+    if (state.page > totalPages) state.page = totalPages;
+
+    const start = (state.page - 1) * state.pageSize;
+    const end = start + state.pageSize;
+    const pageRows = state.rows.slice(start, end);
+    renderLeaderboardRows(body, pageRows, start);
+
+    if (prevBtn) prevBtn.hidden = state.page <= 1;
+    if (nextBtn) nextBtn.hidden = state.page >= totalPages;
   }
 
-  refreshLeaderboardBody(body);
+  async function refreshAllRows() {
+    if (!body) return;
+
+    try {
+      state.rows = await fetchLeaderboardRows();
+      renderPage();
+    } catch (_err) {
+      body.innerHTML = "<tr><td colspan='4'>Unable to load leaderboard.</td></tr>";
+    }
+  }
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", refreshAllRows);
+  }
+
+  if (pageSizeSelect) {
+    pageSizeSelect.addEventListener("change", () => {
+      state.pageSize = Number(pageSizeSelect.value) || 10;
+      state.page = 1;
+      renderPage();
+    });
+  }
+
+  if (prevBtn) {
+    prevBtn.addEventListener("click", () => {
+      if (state.page > 1) {
+        state.page -= 1;
+        renderPage();
+      }
+    });
+  }
+
+  if (nextBtn) {
+    nextBtn.addEventListener("click", () => {
+      const totalPages = Math.max(1, Math.ceil(state.rows.length / state.pageSize));
+      if (state.page < totalPages) {
+        state.page += 1;
+        renderPage();
+      }
+    });
+  }
+
+  refreshAllRows();
 }
 
 function initReadonlyPage() {

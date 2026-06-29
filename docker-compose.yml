@@ -12,7 +12,7 @@ services:
       DJANGO_SECRET_KEY: "change-this-in-portainer"
       DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1"
       DJANGO_CSRF_TRUSTED_ORIGINS: "http://localhost:8000,http://127.0.0.1:8000"
-      DJANGO_STATIC_URL: "http://10.45.67.52:8241/"
+      DJANGO_STATIC_URL: "/static/"
       BRACKET_ADMIN_CODE: "change-me"
       DJANGO_DB_HOST: "10.45.67.52"
       DJANGO_DB_PORT: "5432"
