@@ -33,6 +33,7 @@ class Team(models.Model):
 class Match(models.Model):
     round_index = models.PositiveSmallIntegerField()
     match_index = models.PositiveSmallIntegerField()
+    kickoff_at = models.DateTimeField(null=True, blank=True, db_index=True)
     home_team = models.ForeignKey(
         Team,
         on_delete=models.SET_NULL,

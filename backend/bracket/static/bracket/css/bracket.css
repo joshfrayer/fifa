@@ -245,6 +245,13 @@ button:disabled {
   box-shadow: 0 4px 12px rgba(19, 30, 42, 0.03);
 }
 
+.match-kickoff {
+  font-size: 0.68rem;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  margin: 0 0.1rem 0.1rem;
+}
+
 .team {
   width: 100%;
   text-align: left;
@@ -490,10 +497,6 @@ button:disabled {
   height: 2rem;
   font-size: 1.15rem;
   color: #1f4d38;
-}
-
-.pager-chevron[hidden] {
- visibility: hidden !important;
 }
 
 @media (max-width: 760px) {

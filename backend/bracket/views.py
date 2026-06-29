@@ -4,6 +4,7 @@ import os
 from django.db import transaction
 from django.http import HttpRequest, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import render
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
@@ -19,8 +20,16 @@ def _empty_rounds() -> list[list[str | None]]:
     return [[None] * size for size in ROUND_SIZES]
 
 
+def _empty_kickoff_rounds() -> list[list[str | None]]:
+    return [[None] * size for size in ROUND_SIZES]
+
+
 def _default_eligible_mask() -> list[list[bool]]:
     return [[True] * size for size in ROUND_SIZES]
+
+
+def _default_locked_rounds() -> list[list[bool]]:
+    return [[False] * size for size in ROUND_SIZES]
 
 
 def _normalize_pick(value):
@@ -89,9 +98,30 @@ def _official_rounds_from_matches():
     return rounds
 
 
+def _locked_rounds_from_matches(now=None):
+    current_time = now or timezone.now()
+    locked_rounds = _default_locked_rounds()
+
+    for match in Match.objects.all().only('round_index', 'match_index', 'winner', 'kickoff_at'):
+        if match.round_index < len(ROUND_SIZES) and match.match_index < ROUND_SIZES[match.round_index]:
+            has_started = match.kickoff_at is not None and match.kickoff_at <= current_time
+            locked_rounds[match.round_index][match.match_index] = bool(match.winner_id) or has_started
+
+    return locked_rounds
+
+
 @ensure_csrf_cookie
 def index(request):
     teams = []
+    kickoff_rounds = _empty_kickoff_rounds()
+    locked_rounds = _locked_rounds_from_matches()
+
+    for match in Match.objects.all().only('round_index', 'match_index', 'kickoff_at'):
+        if match.round_index < len(ROUND_SIZES) and match.match_index < ROUND_SIZES[match.round_index]:
+            kickoff_rounds[match.round_index][match.match_index] = (
+                match.kickoff_at.isoformat() if match.kickoff_at else None
+            )
+
     round32_matches = list(
         Match.objects.filter(round_index=0).select_related('home_team', 'away_team').order_by('match_index')
     )
@@ -103,7 +133,15 @@ def index(request):
     else:
         teams = list(DEFAULT_TEAMS)
 
-    return render(request, 'bracket/index.html', {'teams': teams})
+    return render(
+        request,
+        'bracket/index.html',
+        {
+            'teams': teams,
+            'kickoff_rounds': kickoff_rounds,
+            'locked_rounds': locked_rounds,
+        },
+    )
 
 
 @require_GET
@@ -132,12 +170,15 @@ def submit_entry(request: HttpRequest):
     rounds = _sanitize_rounds(rounds)
 
     official_rounds = _official_rounds_from_matches()
+    locked_rounds = _locked_rounds_from_matches()
     eligible_mask = _default_eligible_mask()
-    for round_index, row in enumerate(official_rounds):
-        for match_index, winner in enumerate(row):
-            if winner:
+    for round_index, row in enumerate(locked_rounds):
+        for match_index, is_locked in enumerate(row):
+            if is_locked:
                 eligible_mask[round_index][match_index] = False
-                rounds[round_index][match_index] = winner
+                winner = official_rounds[round_index][match_index]
+                if winner:
+                    rounds[round_index][match_index] = winner
 
     if not _is_complete(rounds):
         return JsonResponse({"ok": False, "error": "Complete all picks before submitting."}, status=400)
@@ -235,8 +276,16 @@ def entry_readonly(request: HttpRequest, entry_id: int):
 @require_GET
 def get_results(request: HttpRequest):
     rounds = _official_rounds_from_matches()
+    locked_rounds = _locked_rounds_from_matches()
     result = _results_instance()
-    return JsonResponse({"ok": True, "rounds": rounds, "updated_at": result.updated_at.isoformat()})
+    return JsonResponse(
+        {
+            "ok": True,
+            "rounds": rounds,
+            "locked_rounds": locked_rounds,
+            "updated_at": result.updated_at.isoformat(),
+        }
+    )
 
 
 @require_POST

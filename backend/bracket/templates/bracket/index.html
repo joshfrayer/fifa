@@ -132,6 +132,8 @@
   </div>
 
   {{ teams|json_script:"teams-data" }}
+  {{ kickoff_rounds|json_script:"kickoff-data" }}
+  {{ locked_rounds|json_script:"locked-data" }}
   <script src="{% static 'bracket/js/bracket.js' %}"></script>
 </body>
 </html>
