@@ -4,6 +4,7 @@ from . import views
 
 urlpatterns = [
     path('', views.index, name='wc2026-bracket'),
+    path('healthz/', views.healthz, name='wc2026-healthz'),
     path('leaderboard/', views.leaderboard_page, name='wc2026-leaderboard-page'),
     path('terms/', views.terms_page, name='wc2026-terms-page'),
     path('tv/', views.live_tv_player_page, name='wc2026-live-tv-player'),

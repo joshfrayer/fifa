@@ -9,7 +9,7 @@ from urllib.request import Request, urlopen
 from django.core.cache import cache
 from django.db import connection
 from django.db import transaction
-from django.http import HttpRequest, HttpResponseBadRequest, JsonResponse, StreamingHttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest, JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -329,6 +329,11 @@ def leaderboard_page(request: HttpRequest):
 @require_GET
 def terms_page(request: HttpRequest):
     return render(request, 'bracket/terms.html')
+
+
+@require_GET
+def healthz(request: HttpRequest):
+    return HttpResponse("ok", content_type="text/plain")
 
 
 @require_GET
