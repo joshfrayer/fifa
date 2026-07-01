@@ -49,6 +49,16 @@ def _collect_css_files(manifest: dict, entry_key: str, seen: set[str] | None = N
     return css_files
 
 
+def _asset_href(relative_path: str) -> str:
+    try:
+        return static(relative_path)
+    except Exception:
+        if settings.DEBUG:
+            raise
+        static_url = settings.STATIC_URL if settings.STATIC_URL.endswith("/") else f"{settings.STATIC_URL}/"
+        return f"{static_url}{relative_path}"
+
+
 @register.simple_tag
 def vite_entry(entry_name: str) -> str:
     try:
@@ -73,12 +83,12 @@ def vite_entry(entry_name: str) -> str:
         if css_file in emitted_css:
             continue
         emitted_css.add(css_file)
-        href = static(f"assets/{css_file}")
+        href = _asset_href(f"assets/{css_file}")
         tags.append(f'<link rel="stylesheet" href="{href}">')
 
     js_file = entry.get("file")
     if js_file:
-        src = static(f"assets/{js_file}")
+        src = _asset_href(f"assets/{js_file}")
         tags.append(f'<script type="module" src="{src}"></script>')
 
     return mark_safe("\n".join(tags))

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="{% static 'bracket/img/favicon.png' %}">
+    <link rel="icon" type="image/png" href="{% get_static_prefix %}bracket/img/favicon.png">
     <title>{% block title %}FIFA Bracket{% endblock %}</title>
     {% block page_assets %}{% endblock %}
     {% block extra_head %}{% endblock %}
@@ -14,7 +14,7 @@
         <nav class="app-nav">
             <div class="app-nav-inner">
                 <a class="app-brand" href="/">
-                    <img src="{% static 'bracket/img/favicon.png' %}" height="32" width="32" alt="FIFA Bracket Logo">
+                    <img src="{% get_static_prefix %}bracket/img/favicon.png" height="32" width="32" alt="FIFA Bracket Logo">
                 </a>
                 <div class="app-nav-links">
                     <a href="/">Submit Bracket</a>
