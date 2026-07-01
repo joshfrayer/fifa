@@ -1,6 +1,7 @@
 """Django settings for fifa project."""
 
 import os
+import sys
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 
@@ -127,9 +128,12 @@ def required_env(*keys: str) -> str:
     raise ImproperlyConfigured(f"Missing required database environment variable(s): {', '.join(keys)}")
 
 
-db_name = required_env('DJANGO_DB_NAME', 'POSTGRES_DB')
-db_user = required_env('DJANGO_DB_USER', 'POSTGRES_USER')
-db_host = required_env('DJANGO_DB_HOST')
+is_collectstatic = len(sys.argv) > 1 and sys.argv[1] == 'collectstatic'
+
+
+db_name = required_env('DJANGO_DB_NAME', 'POSTGRES_DB') if not is_collectstatic else (os.getenv('DJANGO_DB_NAME') or os.getenv('POSTGRES_DB') or 'collectstatic')
+db_user = required_env('DJANGO_DB_USER', 'POSTGRES_USER') if not is_collectstatic else (os.getenv('DJANGO_DB_USER') or os.getenv('POSTGRES_USER') or 'collectstatic')
+db_host = required_env('DJANGO_DB_HOST') if not is_collectstatic else (os.getenv('DJANGO_DB_HOST') or 'localhost')
 db_password = os.getenv('DJANGO_DB_PASSWORD') or os.getenv('POSTGRES_PASSWORD') or ''
 
 DATABASES = {
