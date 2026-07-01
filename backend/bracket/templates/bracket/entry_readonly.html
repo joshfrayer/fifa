@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  {% load static %}
+  {% load vite_assets %}
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ entry.name }} - Submitted Bracket</title>
-  <link rel="stylesheet" href="{% static 'bracket/css/bracket.css' %}">
+  {% vite_entry 'js/bracket_page.js' %}
 </head>
 <body class="bracket-page bracket-readonly" data-page="readonly">
   <div class="wrap">
@@ -104,7 +104,5 @@
   {{ kickoff_rounds|json_script:"kickoff-data" }}
   {{ score_rounds|json_script:"score-data" }}
   {{ eligible_mask|json_script:"eligible-data" }}
-
-  <script src="{% static 'bracket/js/bracket.js' %}"></script>
 </body>
 </html>

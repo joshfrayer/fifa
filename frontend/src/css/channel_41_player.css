@@ -1,0 +1,55 @@
+.tv-wrap {
+  width: min(980px, 95vw);
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.tv-topbar {
+  margin-top: 1rem;
+}
+
+.player-panel {
+  background: rgba(255, 255, 255, 0.93);
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  padding: 0.9rem;
+  box-shadow: 0 8px 24px rgba(11, 28, 20, 0.12);
+}
+
+.player-frame {
+  margin-top: 0.8rem;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #06160f;
+  border-radius: 0.4rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+#channelPlayer {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #000;
+}
+
+.error {
+  color: #8f2222;
+  font-weight: 700;
+  margin-top: 0.6rem;
+  min-height: 1.2rem;
+}
+
+.status {
+  color: #1c4f36;
+  font-weight: 600;
+  margin-top: 0.6rem;
+  min-height: 1.2rem;
+}
+
+.disclaimer {
+  color: var(--muted);
+  font-size: 0.84rem;
+  margin-top: 0.6rem;
+}

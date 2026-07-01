@@ -1,3 +1,15 @@
+FROM node:20-alpine AS frontend-build
+
+WORKDIR /workspace/frontend
+
+COPY frontend/package.json ./package.json
+COPY frontend/package-lock.json ./package-lock.json
+RUN npm ci
+
+COPY frontend/ ./
+RUN npm run build
+
+
 FROM python:3.13-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -10,6 +22,7 @@ COPY requirements.txt /tmp/requirements.txt
 RUN pip install --upgrade pip && pip install -r /tmp/requirements.txt
 
 COPY backend/ /app/
+COPY --from=frontend-build /workspace/backend/static/assets /app/static/assets
 
 FROM base AS assets
 

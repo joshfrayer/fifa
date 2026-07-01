@@ -1,0 +1,25 @@
+{
+  "_bracket.C-qrsARy.css": {
+    "file": "bracket.C-qrsARy.css",
+    "src": "_bracket.C-qrsARy.css"
+  },
+  "js/bracket_page.js": {
+    "file": "bracket.DufRqegL.js",
+    "name": "bracket",
+    "src": "js/bracket_page.js",
+    "isEntry": true,
+    "css": [
+      "bracket.C-qrsARy.css"
+    ]
+  },
+  "js/channel_41_player_page.js": {
+    "file": "channel_41_player.CIdWycJi.js",
+    "name": "channel_41_player",
+    "src": "js/channel_41_player_page.js",
+    "isEntry": true,
+    "css": [
+      "channel_41_player.Cw9k6KyJ.css",
+      "bracket.C-qrsARy.css"
+    ]
+  }
+}

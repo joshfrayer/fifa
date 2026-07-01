@@ -188,6 +188,7 @@ if not (STATIC_URL.startswith('http://') or STATIC_URL.startswith('https://') or
     STATIC_URL = f'/{STATIC_URL}'
 if not STATIC_URL.endswith('/'):
     STATIC_URL = f'{STATIC_URL}/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = os.getenv('DJANGO_MEDIA_URL', '/media/')
 if not MEDIA_URL.startswith('/'):

@@ -9,3 +9,5 @@ __pycache__/
 .gitignore
 .vscode/
 .DS_Store
+frontend/node_modules/
+frontend/dist/
