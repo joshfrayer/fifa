@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: app
     container_name: fifa_wc_bracket
     restart: unless-stopped
     ports:
@@ -23,3 +24,13 @@ services:
       DJANGO_SUPERUSER_USERNAME: "admin"
       DJANGO_SUPERUSER_EMAIL: "admin@example.com"
       DJANGO_SUPERUSER_PASSWORD: "change-me"
+
+  assets:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: assets
+    container_name: fifa_wc_bracket_assets
+    restart: unless-stopped
+    ports:
+      - "8241:8241"
