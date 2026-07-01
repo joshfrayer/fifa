@@ -85,6 +85,71 @@ def _score_entry(picks, results, eligible_mask):
     return score, possible_scored
 
 
+def _initial_teams_from_matches() -> list[str]:
+    initial_teams = []
+    round32_matches = list(
+        Match.objects.filter(round_index=0).select_related('home_team', 'away_team').order_by('match_index')
+    )
+
+    if len(round32_matches) == ROUND_SIZES[0]:
+        for match in round32_matches:
+            initial_teams.append(match.home_team.name if match.home_team else 'TBD')
+            initial_teams.append(match.away_team.name if match.away_team else 'TBD')
+        return initial_teams
+
+    return list(DEFAULT_TEAMS)
+
+
+def _possible_winners_by_round(initial_teams: list[str], official_rounds: list[list[str | None]]) -> list[list[set[str]]]:
+    possible: list[list[set[str]]] = [
+        [set() for _ in range(size)] for size in ROUND_SIZES
+    ]
+
+    for match_index in range(ROUND_SIZES[0]):
+        winner = official_rounds[0][match_index]
+        if winner:
+            possible[0][match_index] = {winner}
+            continue
+
+        home = initial_teams[match_index * 2] if match_index * 2 < len(initial_teams) else None
+        away = initial_teams[match_index * 2 + 1] if (match_index * 2 + 1) < len(initial_teams) else None
+        candidates = {team for team in (home, away) if team and team != 'TBD'}
+        possible[0][match_index] = candidates
+
+    for round_index in range(1, len(ROUND_SIZES)):
+        for match_index in range(ROUND_SIZES[round_index]):
+            winner = official_rounds[round_index][match_index]
+            if winner:
+                possible[round_index][match_index] = {winner}
+                continue
+
+            left_candidates = possible[round_index - 1][match_index * 2]
+            right_candidates = possible[round_index - 1][match_index * 2 + 1]
+            possible[round_index][match_index] = set(left_candidates) | set(right_candidates)
+
+    return possible
+
+
+def _max_possible_score(picks, results, eligible_mask, initial_teams):
+    score, _ = _score_entry(picks, results, eligible_mask)
+    possible_winners = _possible_winners_by_round(initial_teams, results)
+    remaining_possible = 0
+
+    for round_index, points in enumerate(ROUND_POINTS):
+        for match_index, winner in enumerate(results[round_index]):
+            if not eligible_mask[round_index][match_index]:
+                continue
+
+            if winner:
+                continue
+
+            pick = picks[round_index][match_index]
+            if pick and pick in possible_winners[round_index][match_index]:
+                remaining_possible += points
+
+    return score + remaining_possible
+
+
 def _results_instance() -> TournamentResult:
     result, _ = TournamentResult.objects.get_or_create(slug="wc2026", defaults={"rounds": _empty_rounds()})
     return result
@@ -122,16 +187,7 @@ def index(request):
                 match.kickoff_at.isoformat() if match.kickoff_at else None
             )
 
-    round32_matches = list(
-        Match.objects.filter(round_index=0).select_related('home_team', 'away_team').order_by('match_index')
-    )
-
-    if len(round32_matches) == ROUND_SIZES[0]:
-        for match in round32_matches:
-            teams.append(match.home_team.name if match.home_team else 'TBD')
-            teams.append(match.away_team.name if match.away_team else 'TBD')
-    else:
-        teams = list(DEFAULT_TEAMS)
+    teams = _initial_teams_from_matches()
 
     return render(
         request,
@@ -193,6 +249,7 @@ def submit_entry(request: HttpRequest):
 @require_GET
 def leaderboard(request: HttpRequest):
     results = _official_rounds_from_matches()
+    initial_teams = _initial_teams_from_matches()
 
     rows = []
     for entry in BracketEntry.objects.order_by("created_at"):
@@ -203,18 +260,20 @@ def leaderboard(request: HttpRequest):
         if not _validate_mask(eligible_mask):
             eligible_mask = _default_eligible_mask()
 
-        score, possible = _score_entry(entry.picks, results, eligible_mask)
+        score, _ = _score_entry(entry.picks, results, eligible_mask)
+        max_possible = _max_possible_score(entry.picks, results, eligible_mask, initial_teams)
         rows.append(
             {
                 "id": entry.id,
                 "name": entry.name,
                 "score": score,
-                "possible": possible,
+                "possible": max_possible,
+                "max_possible": max_possible,
                 "submitted_at": entry.created_at.isoformat(),
             }
         )
 
-    rows.sort(key=lambda item: (-item["score"], item["submitted_at"], item["name"].lower()))
+    rows.sort(key=lambda item: (-item["score"], -item["max_possible"], item["submitted_at"], item["name"].lower()))
     return JsonResponse({"ok": True, "rows": rows})
 
 
@@ -251,24 +310,22 @@ def entry_readonly(request: HttpRequest, entry_id: int):
     if not _validate_rounds(entry.picks):
         return JsonResponse({"ok": False, "error": "Stored bracket format is invalid."}, status=400)
 
-    initial_teams = []
-    round32_matches = list(
-        Match.objects.filter(round_index=0).select_related('home_team', 'away_team').order_by('match_index')
-    )
-
-    if len(round32_matches) == ROUND_SIZES[0]:
-        for match in round32_matches:
-            initial_teams.append(match.home_team.name if match.home_team else 'TBD')
-            initial_teams.append(match.away_team.name if match.away_team else 'TBD')
-    else:
-        initial_teams = list(DEFAULT_TEAMS)
-
+    initial_teams = _initial_teams_from_matches()
+    official_rounds = _official_rounds_from_matches()
+    kickoff_rounds = _empty_kickoff_rounds()
+    for match in Match.objects.all().only('round_index', 'match_index', 'kickoff_at'):
+        if match.round_index < len(ROUND_SIZES) and match.match_index < ROUND_SIZES[match.round_index]:
+            kickoff_rounds[match.round_index][match.match_index] = (
+                match.kickoff_at.isoformat() if match.kickoff_at else None
+            )
     return render(
         request,
         'bracket/entry_readonly.html',
         {
             'entry': entry,
             'initial_teams': initial_teams,
+            'official_rounds': official_rounds,
+            'kickoff_rounds': kickoff_rounds,
         },
     )
 

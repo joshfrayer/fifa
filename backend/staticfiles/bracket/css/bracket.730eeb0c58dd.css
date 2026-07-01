@@ -281,37 +281,10 @@ button:disabled {
 }
 
 .team.selected {
-  background: #e8f0ff;
-  border-color: #93b4f3;
-  color: #184594;
-  font-weight: 700;
-}
-
-.team.selected.selected-correct {
-  background: #dff6ea;
-  border-color: #88cda9;
+  background: var(--accent-soft);
+  border-color: #9fd8c4;
   color: #0d503b;
-}
-
-.team.selected.selected-wrong {
-  background: #fbe4e4;
-  border-color: #df9b9b;
-  color: #8f2222;
-}
-
-.selected-result-icon {
-  margin-left: auto;
-  font-weight: 800;
-  line-height: 1;
-  font-size: 0.85rem;
-}
-
-.selected-result-icon.correct {
-  color: #0d7a43;
-}
-
-.selected-result-icon.wrong {
-  color: #b52a2a;
+  font-weight: 700;
 }
 
 .team.disabled {

@@ -100,6 +100,8 @@
 
   {{ entry.picks|json_script:"entry-rounds" }}
   {{ initial_teams|json_script:"initial-teams" }}
+  {{ official_rounds|json_script:"official-data" }}
+  {{ kickoff_rounds|json_script:"kickoff-data" }}
 
   <script src="{% static 'bracket/js/bracket.js' %}"></script>
 </body>
