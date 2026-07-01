@@ -1,0 +1,52 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="{% static 'bracket/img/favicon.png' %}">
+    <title>{% block title %}FIFA Bracket{% endblock %}</title>
+    {% block page_assets %}{% endblock %}
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="{% block body_class %}bracket-page{% endblock %}" {% block body_data %}{% endblock %}>
+    <div class="app-shell">
+        <nav class="app-nav">
+            <div class="app-nav-inner">
+                <a class="app-brand" href="/">
+                    <img src="{% static 'bracket/img/favicon.png' %}" height="32" width="32" alt="FIFA Bracket Logo">
+                </a>
+                <div class="app-nav-links">
+                    <a href="/">Submit Bracket</a>
+                    <a href="/leaderboard/">Leaderboard</a>
+                    <a href="/tv/">Live TV</a>
+                    <a href="/admin/">Admin</a>
+                </div>
+            </div>
+        </nav>
+
+        <header class="app-header">
+            <div class="app-header-inner">
+                <div>
+                    <h1 class="app-page-title">{% block page_title %}FIFA Bracket{% endblock %}</h1>
+                    {% block page_subtitle %}{% endblock %}
+                </div>
+                {% block header_actions %}{% endblock %}
+            </div>
+        </header>
+
+        <main class="app-main">
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer class="app-footer">
+            <div class="app-footer-inner">
+                Educational and experimental project only. Limited Live TV support and regional constraints apply.
+                <a href="{% url 'wc2026-terms-page' %}">Read Terms and Conditions</a> for full details.
+            </div>
+        </footer>
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

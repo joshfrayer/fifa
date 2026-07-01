@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Soccer ball favicon">
+  <circle cx="32" cy="32" r="30" fill="#ffffff" stroke="#111111" stroke-width="3"/>
+
+  <g fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 14 L32 9 L46 14 L54 26 L51 41 L40 52 L24 52 L13 41 L10 26 Z"/>
+    <path d="M32 9 L32 20"/>
+    <path d="M10 26 L21 30"/>
+    <path d="M54 26 L43 30"/>
+    <path d="M13 41 L24 36"/>
+    <path d="M51 41 L40 36"/>
+    <path d="M24 52 L29 41"/>
+    <path d="M40 52 L35 41"/>
+    <path d="M21 30 L24 36"/>
+    <path d="M43 30 L40 36"/>
+    <path d="M24 36 L29 41"/>
+    <path d="M40 36 L35 41"/>
+    <path d="M29 41 L35 41"/>
+    <path d="M24 24 L32 20 L40 24 L43 30 L40 36 L32 38 L24 36 L21 30 Z"/>
+  </g>
+
+  <polygon points="32,20 24,24 21,30 24,36 32,38 40,36 43,30 40,24" fill="#111111"/>
+  <polygon points="32,9 24,14 24,24 32,20 40,24 40,14" fill="#111111" opacity="0.9"/>
+  <polygon points="10,26 18,14 24,24 21,30" fill="#111111" opacity="0.9"/>
+  <polygon points="54,26 46,14 40,24 43,30" fill="#111111" opacity="0.9"/>
+</svg>

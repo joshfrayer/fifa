@@ -1,139 +1,150 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  {% load vite_assets %}
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FIFA World Cup 2026 Bracket</title>
-  {% vite_entry 'js/bracket_page.js' %}
-</head>
-<body class="bracket-page bracket-index" data-page="index">
-  <div class="wrap">
-    <div class="topbar">
-      <div>
-        <h1>FIFA World Cup 2026 Bracket</h1>
-        <div class="subtitle">Click a team in each matchup to advance winners. Picks save in your browser.</div>
-      </div>
-      <div class="controls">
-        <button id="randomize">Randomize</button>
-        <button id="reset" class="danger">Reset</button>
-      </div>
-    </div>
+{% extends 'bracket/base.html' %}
+{% load vite_assets %}
 
-    <div class="round-wizard" id="roundWizard" aria-label="Round wizard">
-      <button id="wizardPrev" class="icon-button" type="button" aria-label="Previous round">&#x2039;</button>
-      <div id="wizardStage" class="wizard-stage">Round of 32</div>
-      <button id="wizardNext" class="icon-button" type="button" aria-label="Next round">&#x203A;</button>
-    </div>
-
-    <div class="layout-mobile" id="mobileLayout" data-round-step="r32">
-      <section class="round" data-stage="r32">
-        <h2>Round of 32</h2>
-        <div class="matches tight" id="mobile-r32"></div>
-      </section>
-      <section class="round" data-stage="r16">
-        <h2>Round of 16</h2>
-        <div class="matches medium" id="mobile-r16"></div>
-      </section>
-      <section class="round" data-stage="qf">
-        <h2>Quarterfinal</h2>
-        <div class="matches loose" id="mobile-qf"></div>
-      </section>
-      <section class="round" data-stage="sf">
-        <h2>Semifinal</h2>
-        <div class="matches medium" id="mobile-sf"></div>
-      </section>
-      <section class="final-col" data-stage="final">
-        <section class="round" style="min-height: auto;">
-          <h2>Final</h2>
-          <div class="matches single" id="mobile-final"></div>
-        </section>
-        <section class="champion" style="min-height: auto;">
-          <div class="cup">🏆</div>
-          <div style="color: var(--muted); margin-bottom: 0.35rem;">Predicted Champion</div>
-          <img id="mobile-winner-flag" class="champion-flag" src="" alt="" hidden>
-          <div class="winner" id="mobile-winner">TBD</div>
-        </section>
-      </section>
-    </div>
-
-    <div class="layout" data-round-step="r32">
-      <section class="round r32" data-stage="r32">
-        <h2>Round of 32</h2>
-        <div class="matches tight" id="left-r32"></div>
-      </section>
-      <section class="round r16" data-stage="r16">
-        <h2>Round of 16</h2>
-        <div class="matches medium" id="left-r16"></div>
-      </section>
-      <section class="round qf" data-stage="qf">
-        <h2>Quarterfinal</h2>
-        <div class="matches loose" id="left-qf"></div>
-      </section>
-      <section class="round sf" data-stage="sf">
-        <h2>Semifinal</h2>
-        <div class="matches single" id="left-sf"></div>
-      </section>
-      <section class="final-col" data-stage="final">
-        <section class="round" style="min-height: auto;">
-          <h2>Final</h2>
-          <div class="matches single" id="final"></div>
-        </section>
-        <section class="champion" style="min-height: auto;">
-          <div class="cup">🏆</div>
-          <div style="color: var(--muted); margin-bottom: 0.35rem;">Predicted Champion</div>
-          <img id="winner-flag" class="champion-flag" src="" alt="" hidden>
-          <div class="winner" id="winner">TBD</div>
-        </section>
-      </section>
-      <section class="round sf" data-stage="sf">
-        <h2>Semifinal</h2>
-        <div class="matches single" id="right-sf"></div>
-      </section>
-      <section class="round qf" data-stage="qf">
-        <h2>Quarterfinal</h2>
-        <div class="matches loose" id="right-qf"></div>
-      </section>
-      <section class="round r16" data-stage="r16">
-        <h2>Round of 16</h2>
-        <div class="matches medium" id="right-r16"></div>
-      </section>
-      <section class="round r32" data-stage="r32">
-        <h2>Round of 32</h2>
-        <div class="matches tight" id="right-r32"></div>
-      </section>
-    </div>
-
-    <div class="panels">
-      <section class="panel">
-        <h3>Submit Your Bracket</h3>
-        <input id="entryName" class="field" type="text" maxlength="80" placeholder="Your name">
-        <div class="panel-actions">
-          <button id="submitEntry" class="accent">Submit Bracket</button>
+{% block title %}FIFA World Cup 2026 Bracket{% endblock %}
+{% block page_assets %}{% vite_entry 'js/bracket_page.jsx' %}{% endblock %}
+{% block body_class %}bracket-page bracket-index{% endblock %}
+{% block body_data %}data-page="index"{% endblock %}
+{% block page_title %}FIFA World Cup 2026 Bracket{% endblock %}
+{% block page_subtitle %}<div class="subtitle">Click a team in each matchup to advance winners. Picks save in your browser.</div>{% endblock %}
+{% block header_actions %}
+        <div class="header-tools">
+            <div class="controls">
+                <button id="randomize">Randomize</button>
+                <button id="reset" class="danger">Reset</button>
+                <button id="abbrLegendOpen" class="legend-open-button" type="button" aria-haspopup="dialog" aria-controls="abbrLegendModal">
+                    Country Legend
+                </button>
+            </div>
         </div>
-        <div id="submitStatus" class="status"></div>
-      </section>
 
-      <section class="panel leaderboard-panel">
-        <h3>Leaderboard</h3>
-        <button id="refreshLeaderboard" class="icon-button leaderboard-refresh" type="button" aria-label="Refresh leaderboard" title="Refresh leaderboard">&#x21bb;</button>
-        <table class="leaderboard">
-          <thead>
-            <tr><th>#</th><th>Name</th><th>Score / Max</th><th>View</th></tr>
-          </thead>
-          <tbody id="leaderboardBody">
-            <tr><td colspan="4">No submissions yet.</td></tr>
-          </tbody>
-        </table>
-        <a href="/leaderboard/" class="leaderboard-link">Open Leaderboard</a>
-      </section>
+        <div id="abbrLegendModal" class="legend-modal" role="dialog" aria-modal="true" aria-labelledby="abbrLegendTitle" hidden>
+            <div class="legend-modal-card">
+                <div class="legend-modal-header">
+                    <h2 id="abbrLegendTitle">Country Abbreviations</h2>
+                    <button id="abbrLegendClose" class="legend-close-button" type="button" aria-label="Close legend">&times;</button>
+                </div>
+                <div id="abbrLegendContent" class="legend-modal-content"></div>
+            </div>
+        </div>
+{% endblock %}
 
+{% block content %}
+    <div class="wrap">
+
+        <div class="round-wizard" id="roundWizard" aria-label="Round wizard">
+            <button id="wizardPrev" class="icon-button" type="button" aria-label="Previous round">&#x2039;</button>
+            <div id="wizardStage" class="wizard-stage">Round of 32</div>
+            <button id="wizardNext" class="icon-button" type="button" aria-label="Next round">&#x203A;</button>
+        </div>
+
+        <div class="layout-mobile" id="mobileLayout" data-round-step="r32">
+            <section class="round" data-stage="r32">
+                <h2>Round of 32</h2>
+                <div class="matches tight" id="mobile-r32"></div>
+            </section>
+            <section class="round" data-stage="r16">
+                <h2>Round of 16</h2>
+                <div class="matches medium" id="mobile-r16"></div>
+            </section>
+            <section class="round" data-stage="qf">
+                <h2>Quarterfinal</h2>
+                <div class="matches loose" id="mobile-qf"></div>
+            </section>
+            <section class="round" data-stage="sf">
+                <h2>Semifinal</h2>
+                <div class="matches medium" id="mobile-sf"></div>
+            </section>
+            <section class="final-col" data-stage="final">
+                <section class="round" style="min-height: auto;">
+                    <h2>Final</h2>
+                    <div class="matches single" id="mobile-final"></div>
+                </section>
+                <section class="champion" style="min-height: auto;">
+                    <div class="cup">🏆</div>
+                    <div style="color: var(--muted); margin-bottom: 0.35rem;">Predicted Champion</div>
+                    <img id="mobile-winner-flag" class="champion-flag" src="" alt="" hidden>
+                    <div class="winner" id="mobile-winner">TBD</div>
+                </section>
+            </section>
+        </div>
+
+        <div class="layout" data-round-step="r32">
+            <section class="round r32" data-stage="r32">
+                <h2>Round of 32</h2>
+                <div class="matches tight" id="left-r32"></div>
+            </section>
+            <section class="round r16" data-stage="r16">
+                <h2>Round of 16</h2>
+                <div class="matches medium" id="left-r16"></div>
+            </section>
+            <section class="round qf" data-stage="qf">
+                <h2>Quarterfinal</h2>
+                <div class="matches loose" id="left-qf"></div>
+            </section>
+            <section class="round sf" data-stage="sf">
+                <h2>Semifinal</h2>
+                <div class="matches single" id="left-sf"></div>
+            </section>
+            <section class="final-col" data-stage="final">
+                <section class="round" style="min-height: auto;">
+                    <h2>Final</h2>
+                    <div class="matches single" id="final"></div>
+                </section>
+                <section class="champion" style="min-height: auto;">
+                    <div class="cup">🏆</div>
+                    <div style="color: var(--muted); margin-bottom: 0.35rem;">Predicted Champion</div>
+                    <img id="winner-flag" class="champion-flag" src="" alt="" hidden>
+                    <div class="winner" id="winner">TBD</div>
+                </section>
+            </section>
+            <section class="round sf" data-stage="sf">
+                <h2>Semifinal</h2>
+                <div class="matches single" id="right-sf"></div>
+            </section>
+            <section class="round qf" data-stage="qf">
+                <h2>Quarterfinal</h2>
+                <div class="matches loose" id="right-qf"></div>
+            </section>
+            <section class="round r16" data-stage="r16">
+                <h2>Round of 16</h2>
+                <div class="matches medium" id="right-r16"></div>
+            </section>
+            <section class="round r32" data-stage="r32">
+                <h2>Round of 32</h2>
+                <div class="matches tight" id="right-r32"></div>
+            </section>
+        </div>
+
+        <div class="panels">
+            <section class="panel">
+                <h3>Submit Your Bracket</h3>
+                <input id="entryName" class="field" type="text" maxlength="80" placeholder="Your name">
+                <div class="panel-actions">
+                    <button id="submitEntry" class="accent">Submit Bracket</button>
+                </div>
+                <div id="submitStatus" class="status"></div>
+            </section>
+
+            <section class="panel leaderboard-panel">
+                <h3>Leaderboard</h3>
+                <button id="refreshLeaderboard" class="icon-button leaderboard-refresh" type="button" aria-label="Refresh leaderboard" title="Refresh leaderboard">&#x21bb;</button>
+                <table class="leaderboard">
+                    <thead>
+                        <tr><th>#</th><th>Name</th><th>Score / Max</th><th>View</th></tr>
+                    </thead>
+                    <tbody id="leaderboardBody">
+                        <tr><td colspan="4">No submissions yet.</td></tr>
+                    </tbody>
+                </table>
+                <a href="/leaderboard/" class="leaderboard-link">Open Leaderboard</a>
+            </section>
+
+        </div>
     </div>
-  </div>
 
-  {{ teams|json_script:"teams-data" }}
-  {{ kickoff_rounds|json_script:"kickoff-data" }}
-  {{ score_rounds|json_script:"score-data" }}
-  {{ locked_rounds|json_script:"locked-data" }}
-</body>
-</html>
+    {{ teams|json_script:"teams-data" }}
+    {{ kickoff_rounds|json_script:"kickoff-data" }}
+    {{ score_rounds|json_script:"score-data" }}
+    {{ locked_rounds|json_script:"locked-data" }}
+{% endblock %}

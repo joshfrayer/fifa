@@ -364,6 +364,85 @@ function renderLeaderboardRows(body, rows, rankStart = 0) {
         .join("");
 }
 
+function buildLegendTeams(teams) {
+    if (!Array.isArray(teams)) return [];
+
+    const seen = new Set();
+    const normalizedTeams = [];
+
+    teams.forEach((team) => {
+        if (!team || team === "TBD") return;
+        const key = normalizeCountryName(team);
+        if (!key || seen.has(key)) return;
+        seen.add(key);
+        normalizedTeams.push(team);
+    });
+
+    return normalizedTeams;
+}
+
+function initCountryLegendModal(teams) {
+    const modal = document.getElementById("abbrLegendModal");
+    const openButton = document.getElementById("abbrLegendOpen");
+    const closeButton = document.getElementById("abbrLegendClose");
+    const content = document.getElementById("abbrLegendContent");
+    if (!modal || !openButton || !closeButton || !content) return;
+
+    const legendTeams = buildLegendTeams(teams);
+    if (!legendTeams.length) {
+        openButton.hidden = true;
+        return;
+    }
+
+    openButton.hidden = false;
+
+    const itemsHtml = legendTeams
+        .map((team) => {
+            const fifaCode = getFifaCode(team);
+            const flagUrl = getFlagUrl(team);
+            const flagHtml = flagUrl
+                ? `<img class="abbr-flag" src="${escapeHtml(flagUrl)}" alt="${escapeHtml(team)} flag" loading="lazy" referrerpolicy="no-referrer">`
+                : "";
+
+            return `
+                <span class="abbr-item" title="${escapeHtml(team)}">
+                    ${flagHtml}
+                    <span class="abbr-code">${escapeHtml(fifaCode)}</span>
+                    <span class="abbr-name">${escapeHtml(team)}</span>
+                </span>
+            `;
+        })
+        .join("");
+
+    content.innerHTML = `
+        <p class="legend-count">${legendTeams.length} countries in this tournament view.</p>
+        <div class="abbr-legend-items">${itemsHtml}</div>
+    `;
+
+    function openModal() {
+        modal.hidden = false;
+    }
+
+    function closeModal() {
+        modal.hidden = true;
+    }
+
+    openButton.addEventListener("click", openModal);
+    closeButton.addEventListener("click", closeModal);
+
+    modal.addEventListener("click", (event) => {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !modal.hidden) {
+            closeModal();
+        }
+    });
+}
+
 async function fetchLeaderboardRows() {
     const res = await fetch("/api/leaderboard/");
     const data = await res.json();
@@ -468,6 +547,7 @@ function initIndexPage() {
     if (!teamsNode) return;
 
     const TEAMS = JSON.parse(teamsNode.textContent);
+    initCountryLegendModal(TEAMS);
     const kickoffRounds = kickoffNode ? JSON.parse(kickoffNode.textContent) : null;
     const scoreRounds = scoreNode ? JSON.parse(scoreNode.textContent) : null;
     const lockedRounds = lockedNode ? JSON.parse(lockedNode.textContent) : null;
@@ -835,6 +915,7 @@ function initReadonlyPage() {
 
     const rounds = JSON.parse(roundsNode.textContent);
     const initialTeams = JSON.parse(teamsNode.textContent);
+    initCountryLegendModal(initialTeams);
     const officialRounds = officialNode ? JSON.parse(officialNode.textContent) : null;
     const kickoffRounds = kickoffNode ? JSON.parse(kickoffNode.textContent) : null;
     const scoreRounds = scoreNode ? JSON.parse(scoreNode.textContent) : null;
@@ -869,7 +950,7 @@ function initReadonlyPage() {
     initRoundWizard();
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+export function initBracketPageFromDom() {
     const page = document.body.dataset.page;
     if (page === "index") {
         initIndexPage();
@@ -880,4 +961,4 @@ document.addEventListener("DOMContentLoaded", () => {
     if (page === "leaderboard") {
         initLeaderboardPage();
     }
-});
+}

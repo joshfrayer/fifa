@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .tv-wrap {
+    @apply relative z-[1] mx-auto w-[calc(100vw-2.4vw)] max-w-none;
+  }
+
+  .tv-topbar {
+    @apply mt-4;
+  }
+
+  .player-panel {
+    @apply rounded-md border border-slate-300 bg-white/90 p-4 shadow-lg;
+  }
+
+  .player-frame {
+    @apply mt-3 w-full overflow-hidden rounded-md border border-white/20;
+    aspect-ratio: 16 / 9;
+    background: #06160f;
+  }
+
+  #channelPlayer {
+    @apply block h-full w-full bg-black;
+  }
+
+  .error {
+    @apply mt-2.5 min-h-5 font-bold text-red-800;
+  }
+
+  .status {
+    @apply mt-2.5 min-h-5 font-semibold text-emerald-900;
+  }
+
+  .disclaimer {
+    @apply mt-2.5 text-sm text-slate-500;
+  }
+}
+

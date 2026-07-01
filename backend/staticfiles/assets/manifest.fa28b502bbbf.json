@@ -1,0 +1,25 @@
+{
+  "_bracket.BX1cEDZH.css": {
+    "file": "bracket.BX1cEDZH.css",
+    "src": "_bracket.BX1cEDZH.css"
+  },
+  "js/bracket_page.js": {
+    "file": "bracket.BtYzOIAI.js",
+    "name": "bracket",
+    "src": "js/bracket_page.js",
+    "isEntry": true,
+    "css": [
+      "bracket.BX1cEDZH.css"
+    ]
+  },
+  "js/live_tv_player_page.js": {
+    "file": "live_tv_player.D3dsuwdd.js",
+    "name": "live_tv_player",
+    "src": "js/live_tv_player_page.js",
+    "isEntry": true,
+    "css": [
+      "live_tv_player.CptkgmOD.css",
+      "bracket.BX1cEDZH.css"
+    ]
+  }
+}

@@ -1,20 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    {% load vite_assets %}
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WC 2026 Leaderboard</title>
-    {% vite_entry 'js/bracket_page.js' %}
-</head>
-<body class="bracket-page leaderboard-page" data-page="leaderboard">
+{% extends 'bracket/base.html' %}
+{% load vite_assets %}
+
+{% block title %}WC 2026 Leaderboard{% endblock %}
+{% block page_assets %}{% vite_entry 'js/bracket_page.jsx' %}{% endblock %}
+{% block body_class %}bracket-page leaderboard-page{% endblock %}
+{% block body_data %}data-page="leaderboard"{% endblock %}
+{% block page_title %}Leaderboard{% endblock %}
+{% block page_subtitle %}<div class="subtitle">Submitted brackets ranked by current score.</div>{% endblock %}
+
+{% block content %}
     <div class="wrap">
-        <div class="topbar">
-            <div>
-                <h1>Leaderboard</h1>
-                <div class="subtitle">Submitted brackets ranked by current score.</div>
-            </div>
-        </div>
         <section class="panel leaderboard-page-panel leaderboard-panel">
             <h3>Current Standings</h3>
             <button id="refreshLeaderboard" class="icon-button leaderboard-refresh" type="button" aria-label="Refresh leaderboard" title="Refresh leaderboard">&#x21bb;</button>
@@ -46,5 +41,4 @@
             <button id="leaderboardNext" class="icon-button pager-chevron" type="button" aria-label="Next leaderboard page" title="Next">&#x203A;</button>
         </div>
     </div>
-</body>
-</html>
+{% endblock %}

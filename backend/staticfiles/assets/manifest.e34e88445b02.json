@@ -1,0 +1,34 @@
+{
+  "_client-CPTdTydY.js": {
+    "file": "client-CPTdTydY.js",
+    "name": "client",
+    "css": [
+      "client.BX1cEDZH.css"
+    ]
+  },
+  "_client.BX1cEDZH.css": {
+    "file": "client.BX1cEDZH.css",
+    "src": "_client.BX1cEDZH.css"
+  },
+  "js/bracket_page.jsx": {
+    "file": "bracket.CsZLwwfY.js",
+    "name": "bracket",
+    "src": "js/bracket_page.jsx",
+    "isEntry": true,
+    "imports": [
+      "_client-CPTdTydY.js"
+    ]
+  },
+  "js/live_tv_player_page.jsx": {
+    "file": "live_tv_player.C-Y4YdaQ.js",
+    "name": "live_tv_player",
+    "src": "js/live_tv_player_page.jsx",
+    "isEntry": true,
+    "imports": [
+      "_client-CPTdTydY.js"
+    ],
+    "css": [
+      "live_tv_player.CptkgmOD.css"
+    ]
+  }
+}

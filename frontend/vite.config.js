@@ -1,7 +1,9 @@
 import { defineConfig } from 'vite'
 import { resolve } from 'path'
+import react from '@vitejs/plugin-react'
 
 export default defineConfig({
+  plugins: [react()],
   root: resolve(__dirname, 'src'),
   build: {
     manifest: 'manifest.json',
@@ -10,8 +12,8 @@ export default defineConfig({
     publicDir: false,
     rollupOptions: {
       input: {
-        bracket: resolve(__dirname, 'src/js/bracket_page.js'),
-        channel_41_player: resolve(__dirname, 'src/js/channel_41_player_page.js')
+        bracket: resolve(__dirname, 'src/js/bracket_page.jsx'),
+        live_tv_player: resolve(__dirname, 'src/js/live_tv_player_page.jsx')
       },
       output: {
         entryFileNames: '[name].[hash].js',

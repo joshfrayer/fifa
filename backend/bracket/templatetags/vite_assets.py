@@ -32,6 +32,21 @@ def _load_manifest() -> dict:
     return _load_manifest_cached()
 
 
+def _collect_css_files(manifest: dict, entry_key: str, seen: set[str] | None = None) -> list[str]:
+    seen = seen or set()
+    if entry_key in seen:
+        return []
+    seen.add(entry_key)
+
+    entry = manifest.get(entry_key) or {}
+    css_files: list[str] = list(entry.get("css", []))
+
+    for import_key in entry.get("imports", []):
+        css_files.extend(_collect_css_files(manifest, import_key, seen))
+
+    return css_files
+
+
 @register.simple_tag
 def vite_entry(entry_name: str) -> str:
     manifest = _load_manifest()
@@ -40,8 +55,12 @@ def vite_entry(entry_name: str) -> str:
 
     entry = manifest[entry_name]
     tags: list[str] = []
+    emitted_css: set[str] = set()
 
-    for css_file in entry.get("css", []):
+    for css_file in _collect_css_files(manifest, entry_name):
+        if css_file in emitted_css:
+            continue
+        emitted_css.add(css_file)
         href = static(f"assets/{css_file}")
         tags.append(f'<link rel="stylesheet" href="{href}">')
 

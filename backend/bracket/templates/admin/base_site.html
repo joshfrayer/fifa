@@ -1,0 +1,23 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block title %}
+    {% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | FIFA Bracket Admin
+{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="icon" type="image/png" href="{% static 'bracket/img/favicon.png' %}">
+    <link rel="stylesheet" href="{% static 'bracket/css/admin_custom.css' %}">
+{% endblock %}
+
+{% block branding %}
+    <h1 id="site-name">
+        <a href="{% url 'admin:index' %}">FIFA Bracket Admin</a>
+    </h1>
+{% endblock %}
+
+{% block userlinks %}
+    {{ block.super }}
+    <a href="/" class="view-site-link">Back to Bracket</a>
+{% endblock %}

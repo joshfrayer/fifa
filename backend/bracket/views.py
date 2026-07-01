@@ -1,10 +1,12 @@
 import json
 import os
 import subprocess
+import uuid
 from ipaddress import ip_address
 from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
 
+from django.core.cache import cache
 from django.db import transaction
 from django.http import HttpRequest, HttpResponseBadRequest, JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
@@ -18,6 +20,28 @@ from .models import BracketEntry, DEFAULT_TEAMS, Match, Team, TournamentResult
 
 ROUND_SIZES = [16, 8, 4, 2, 1]
 ROUND_POINTS = [1, 2, 4, 8, 16]
+LIVE_TV_STREAM_LOCK_KEY = "bracket:live_tv:active_stream"
+LIVE_TV_STREAM_LOCK_TTL_SECONDS = int((os.getenv("LIVE_TV_STREAM_LOCK_TTL", "75") or "75").strip())
+
+
+def _acquire_live_tv_stream_lock() -> str | None:
+    token = uuid.uuid4().hex
+    acquired = cache.add(LIVE_TV_STREAM_LOCK_KEY, token, timeout=LIVE_TV_STREAM_LOCK_TTL_SECONDS)
+    if not acquired:
+        return None
+    return token
+
+
+def _refresh_live_tv_stream_lock(lock_token: str) -> None:
+    current = cache.get(LIVE_TV_STREAM_LOCK_KEY)
+    if current == lock_token:
+        cache.set(LIVE_TV_STREAM_LOCK_KEY, lock_token, timeout=LIVE_TV_STREAM_LOCK_TTL_SECONDS)
+
+
+def _release_live_tv_stream_lock(lock_token: str) -> None:
+    current = cache.get(LIVE_TV_STREAM_LOCK_KEY)
+    if current == lock_token:
+        cache.delete(LIVE_TV_STREAM_LOCK_KEY)
 
 
 def _empty_rounds() -> list[list[str | None]]:
@@ -229,21 +253,26 @@ def leaderboard_page(request: HttpRequest):
 
 
 @require_GET
-def channel_41_player_page(request: HttpRequest):
+def terms_page(request: HttpRequest):
+    return render(request, 'bracket/terms.html')
+
+
+@require_GET
+def live_tv_player_page(request: HttpRequest):
     default_stream_url = "http://10.45.67.62:5004/auto/v4.1"
     stream_url = (
         request.GET.get("src")
-        or os.getenv("HDHR_CHANNEL_41_URL", "")
+        or os.getenv("HDHR_LIVE_TV_URL", "")
         or default_stream_url
     ).strip()
 
-    proxy_url = f"/tv/channel-4-1/proxy/?src={quote(stream_url, safe='')}"
-    transcode_proxy_url = f"/tv/channel-4-1/proxy/transcode/?src={quote(stream_url, safe='')}"
+    proxy_url = f"/tv/live/proxy/?src={quote(stream_url, safe='')}"
+    transcode_proxy_url = f"/tv/live/proxy/transcode/?src={quote(stream_url, safe='')}"
     proxy_url_absolute = request.build_absolute_uri(proxy_url)
     transcode_proxy_url_absolute = request.build_absolute_uri(transcode_proxy_url)
     return render(
         request,
-        'bracket/channel_41_player.html',
+        'bracket/live_tv_player.html',
         {
             'stream_url': stream_url,
             'proxy_url': proxy_url,
@@ -276,22 +305,30 @@ def _is_allowed_proxy_target(stream_url: str) -> bool:
 
 
 @require_GET
-def channel_41_stream_proxy(request: HttpRequest):
+def live_tv_stream_proxy(request: HttpRequest):
     default_stream_url = "http://10.45.67.62:5004/auto/v4.1"
     stream_url = (
         request.GET.get("src")
-        or os.getenv("HDHR_CHANNEL_41_URL", "")
+        or os.getenv("HDHR_LIVE_TV_URL", "")
         or default_stream_url
     ).strip()
 
     if not _is_allowed_proxy_target(stream_url):
         return JsonResponse({"ok": False, "error": "Proxy target is not allowed."}, status=400)
 
+    lock_token = _acquire_live_tv_stream_lock()
+    if lock_token is None:
+        return JsonResponse(
+            {"ok": False, "error": "Live TV is already in use. Only one stream is allowed at a time."},
+            status=429,
+        )
+
     upstream_request = Request(stream_url, headers={"User-Agent": "Django-HDHR-Proxy/1.0"})
 
     try:
         upstream_response = urlopen(upstream_request, timeout=8)
     except Exception as exc:
+        _release_live_tv_stream_lock(lock_token)
         return JsonResponse({"ok": False, "error": f"Unable to open upstream stream: {exc}"}, status=502)
 
     content_type = upstream_response.headers.get("Content-Type", "video/mpeg")
@@ -302,9 +339,11 @@ def channel_41_stream_proxy(request: HttpRequest):
                 chunk = upstream_response.read(64 * 1024)
                 if not chunk:
                     break
+                _refresh_live_tv_stream_lock(lock_token)
                 yield chunk
         finally:
             upstream_response.close()
+            _release_live_tv_stream_lock(lock_token)
 
     response = StreamingHttpResponse(stream_chunks(), content_type=content_type)
     response["Cache-Control"] = "no-cache, no-store, must-revalidate"
@@ -314,22 +353,30 @@ def channel_41_stream_proxy(request: HttpRequest):
 
 
 @require_GET
-def channel_41_stream_transcode_proxy(request: HttpRequest):
+def live_tv_stream_transcode_proxy(request: HttpRequest):
     default_stream_url = "http://10.45.67.62:5004/auto/v4.1"
     stream_url = (
         request.GET.get("src")
-        or os.getenv("HDHR_CHANNEL_41_URL", "")
+        or os.getenv("HDHR_LIVE_TV_URL", "")
         or default_stream_url
     ).strip()
 
     if not _is_allowed_proxy_target(stream_url):
         return JsonResponse({"ok": False, "error": "Proxy target is not allowed."}, status=400)
 
+    lock_token = _acquire_live_tv_stream_lock()
+    if lock_token is None:
+        return JsonResponse(
+            {"ok": False, "error": "Live TV is already in use. Only one stream is allowed at a time."},
+            status=429,
+        )
+
     try:
         from imageio_ffmpeg import get_ffmpeg_exe
 
         ffmpeg_exe = get_ffmpeg_exe()
     except Exception as exc:
+        _release_live_tv_stream_lock(lock_token)
         return JsonResponse({"ok": False, "error": f"FFmpeg runtime is unavailable: {exc}"}, status=500)
 
     # Tune for smoother browser playback on constrained LAN/Wi-Fi clients.
@@ -398,6 +445,7 @@ def channel_41_stream_transcode_proxy(request: HttpRequest):
             bufsize=0,
         )
     except Exception as exc:
+        _release_live_tv_stream_lock(lock_token)
         return JsonResponse({"ok": False, "error": f"Failed to start FFmpeg: {exc}"}, status=500)
 
     def stream_chunks():
@@ -407,6 +455,7 @@ def channel_41_stream_transcode_proxy(request: HttpRequest):
                     break
                 chunk = process.stdout.read(64 * 1024)
                 if chunk:
+                    _refresh_live_tv_stream_lock(lock_token)
                     yield chunk
                     continue
 
@@ -419,6 +468,7 @@ def channel_41_stream_transcode_proxy(request: HttpRequest):
                 process.wait(timeout=1)
             except Exception:
                 pass
+            _release_live_tv_stream_lock(lock_token)
 
     response = StreamingHttpResponse(stream_chunks(), content_type="video/mp2t")
     response["Cache-Control"] = "no-cache, no-store, must-revalidate"
