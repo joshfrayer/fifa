@@ -203,6 +203,10 @@ function renderRoundSliceInteractive(state, teamsForRound, containerId, roundInd
                     btn.appendChild(resultIcon);
                 }
             }
+
+            if (officialWinner && team === officialWinner) {
+                btn.classList.add("official-winner");
+            }
             match.appendChild(btn);
 
         });
@@ -218,7 +222,7 @@ function renderRoundSliceInteractive(state, teamsForRound, containerId, roundInd
     }
 }
 
-function renderRoundSliceReadonly(rounds, teamsForRound, containerId, roundIndex, startMatch, count, kickoffRounds = null, officialRounds = null, eliminatedTeamKeys = null) {
+function renderRoundSliceReadonly(rounds, teamsForRound, containerId, roundIndex, startMatch, count, kickoffRounds = null, officialRounds = null, eliminatedTeamKeys = null, eligibleMask = null) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
@@ -231,6 +235,7 @@ function renderRoundSliceReadonly(rounds, teamsForRound, containerId, roundIndex
         const selected = (rounds[roundIndex] || [])[matchIndex] || null;
         const officialWinner = ((officialRounds?.[roundIndex] || [])[matchIndex]) || null;
         const kickoffIso = ((kickoffRounds?.[roundIndex] || [])[matchIndex]) || null;
+        const isEligible = ((eligibleMask?.[roundIndex] || [])[matchIndex]) !== false;
 
         const match = document.createElement("div");
         match.className = "match";
@@ -258,8 +263,8 @@ function renderRoundSliceReadonly(rounds, teamsForRound, containerId, roundIndex
             if (selected === team) {
                 row.classList.add("selected");
 
-                const isCorrect = !!officialWinner && team === officialWinner;
-                const isWrong = (!!officialWinner && team !== officialWinner) || isCascadeWrongPick(team, eliminatedTeamKeys);
+                const isCorrect = isEligible && !!officialWinner && team === officialWinner;
+                const isWrong = isEligible && ((!!officialWinner && team !== officialWinner) || isCascadeWrongPick(team, eliminatedTeamKeys));
 
                 if (isCorrect || isWrong) {
                     row.classList.add(isCorrect ? "selected-correct" : "selected-wrong");
@@ -270,6 +275,10 @@ function renderRoundSliceReadonly(rounds, teamsForRound, containerId, roundIndex
                     resultIcon.setAttribute("aria-label", isCorrect ? "Correct pick" : "Incorrect pick");
                     row.appendChild(resultIcon);
                 }
+            }
+
+            if (officialWinner && team === officialWinner) {
+                row.classList.add("official-winner");
             }
             match.appendChild(row);
         });
@@ -762,12 +771,14 @@ function initReadonlyPage() {
     const teamsNode = document.getElementById("initial-teams");
     const officialNode = document.getElementById("official-data");
     const kickoffNode = document.getElementById("kickoff-data");
+    const eligibleNode = document.getElementById("eligible-data");
     if (!roundsNode || !teamsNode) return;
 
     const rounds = JSON.parse(roundsNode.textContent);
     const initialTeams = JSON.parse(teamsNode.textContent);
     const officialRounds = officialNode ? JSON.parse(officialNode.textContent) : null;
     const kickoffRounds = kickoffNode ? JSON.parse(kickoffNode.textContent) : null;
+    const eligibleMask = eligibleNode ? JSON.parse(eligibleNode.textContent) : null;
     const eliminatedTeamKeys = getEliminatedTeamKeys(initialTeams, officialRounds || []);
 
     function teamsForRound(roundIndex) {
@@ -776,21 +787,21 @@ function initReadonlyPage() {
         return prior.map((team) => team || "TBD");
     }
 
-    renderRoundSliceReadonly(rounds, teamsForRound, "left-r32", 0, 0, 8, kickoffRounds, officialRounds, eliminatedTeamKeys);
-    renderRoundSliceReadonly(rounds, teamsForRound, "left-r16", 1, 0, 4, kickoffRounds, officialRounds, eliminatedTeamKeys);
-    renderRoundSliceReadonly(rounds, teamsForRound, "left-qf", 2, 0, 2, kickoffRounds, officialRounds, eliminatedTeamKeys);
-    renderRoundSliceReadonly(rounds, teamsForRound, "left-sf", 3, 0, 1, kickoffRounds, officialRounds, eliminatedTeamKeys);
-    renderRoundSliceReadonly(rounds, teamsForRound, "right-r32", 0, 8, 8, kickoffRounds, officialRounds, eliminatedTeamKeys);
-    renderRoundSliceReadonly(rounds, teamsForRound, "right-r16", 1, 4, 4, kickoffRounds, officialRounds, eliminatedTeamKeys);
-    renderRoundSliceReadonly(rounds, teamsForRound, "right-qf", 2, 2, 2, kickoffRounds, officialRounds, eliminatedTeamKeys);
-    renderRoundSliceReadonly(rounds, teamsForRound, "right-sf", 3, 1, 1, kickoffRounds, officialRounds, eliminatedTeamKeys);
-    renderRoundSliceReadonly(rounds, teamsForRound, "final", 4, 0, 1, kickoffRounds, officialRounds, eliminatedTeamKeys);
+    renderRoundSliceReadonly(rounds, teamsForRound, "left-r32", 0, 0, 8, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
+    renderRoundSliceReadonly(rounds, teamsForRound, "left-r16", 1, 0, 4, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
+    renderRoundSliceReadonly(rounds, teamsForRound, "left-qf", 2, 0, 2, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
+    renderRoundSliceReadonly(rounds, teamsForRound, "left-sf", 3, 0, 1, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
+    renderRoundSliceReadonly(rounds, teamsForRound, "right-r32", 0, 8, 8, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
+    renderRoundSliceReadonly(rounds, teamsForRound, "right-r16", 1, 4, 4, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
+    renderRoundSliceReadonly(rounds, teamsForRound, "right-qf", 2, 2, 2, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
+    renderRoundSliceReadonly(rounds, teamsForRound, "right-sf", 3, 1, 1, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
+    renderRoundSliceReadonly(rounds, teamsForRound, "final", 4, 0, 1, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
 
-    renderRoundSliceReadonly(rounds, teamsForRound, "mobile-r32", 0, 0, 16, kickoffRounds, officialRounds, eliminatedTeamKeys);
-    renderRoundSliceReadonly(rounds, teamsForRound, "mobile-r16", 1, 0, 8, kickoffRounds, officialRounds, eliminatedTeamKeys);
-    renderRoundSliceReadonly(rounds, teamsForRound, "mobile-qf", 2, 0, 4, kickoffRounds, officialRounds, eliminatedTeamKeys);
-    renderRoundSliceReadonly(rounds, teamsForRound, "mobile-sf", 3, 0, 2, kickoffRounds, officialRounds, eliminatedTeamKeys);
-    renderRoundSliceReadonly(rounds, teamsForRound, "mobile-final", 4, 0, 1, kickoffRounds, officialRounds, eliminatedTeamKeys);
+    renderRoundSliceReadonly(rounds, teamsForRound, "mobile-r32", 0, 0, 16, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
+    renderRoundSliceReadonly(rounds, teamsForRound, "mobile-r16", 1, 0, 8, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
+    renderRoundSliceReadonly(rounds, teamsForRound, "mobile-qf", 2, 0, 4, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
+    renderRoundSliceReadonly(rounds, teamsForRound, "mobile-sf", 3, 0, 2, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
+    renderRoundSliceReadonly(rounds, teamsForRound, "mobile-final", 4, 0, 1, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
 
     const champion = (rounds[4] || [])[0] || "TBD";
     setChampionLabels(champion);

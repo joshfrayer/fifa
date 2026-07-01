@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% load static %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FOX 4</title>
+  <link rel="stylesheet" href="{% static 'bracket/css/bracket.css' %}">
+  <style>
+    .tv-wrap {
+      width: min(980px, 95vw);
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .player-panel {
+      background: rgba(255, 255, 255, 0.93);
+      border: 1px solid var(--line);
+      border-radius: 0.45rem;
+      padding: 0.9rem;
+      box-shadow: 0 8px 24px rgba(11, 28, 20, 0.12);
+    }
+
+    .player-frame {
+      margin-top: 0.8rem;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #06160f;
+      border-radius: 0.4rem;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    #channelPlayer {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: #000;
+    }
+
+    .error {
+      color: #8f2222;
+      font-weight: 700;
+      margin-top: 0.6rem;
+      min-height: 1.2rem;
+    }
+
+    .status {
+      color: #1c4f36;
+      font-weight: 600;
+      margin-top: 0.6rem;
+      min-height: 1.2rem;
+    }
+
+  </style>
+</head>
+<body class="bracket-page">
+  <div class="tv-wrap">
+    <div class="topbar" style="margin-top: 1rem;">
+      <div>
+        <h1>Fox 4</h1>
+      </div>
+    </div>
+
+    <section class="player-panel">
+      <div class="player-frame">
+        <video id="channelPlayer" controls playsinline autoplay muted></video>
+      </div>
+      <div id="playerStatus" class="status"></div>
+      <div id="playerError" class="error"></div>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.8.0/dist/mpegts.min.js"></script>
+  <script>
+    (function () {
+      const streamUrl = "{{ transcode_proxy_url_absolute|escapejs }}";
+      const video = document.getElementById("channelPlayer");
+      const statusEl = document.getElementById("playerStatus");
+      const errorEl = document.getElementById("playerError");
+      let mpegPlayer = null;
+      let hlsPlayer = null;
+      let activeEngine = null;
+      let stallTimer = null;
+
+      function setError(message) {
+        errorEl.textContent = message;
+      }
+
+      function clearError() {
+        errorEl.textContent = "";
+      }
+
+      function setStatus(message) {
+        statusEl.textContent = message;
+      }
+
+      function cleanupPlayers() {
+        if (stallTimer) {
+          window.clearTimeout(stallTimer);
+          stallTimer = null;
+        }
+
+        if (hlsPlayer) {
+          hlsPlayer.destroy();
+          hlsPlayer = null;
+        }
+
+        if (mpegPlayer) {
+          mpegPlayer.unload();
+          mpegPlayer.detachMediaElement();
+          mpegPlayer.destroy();
+          mpegPlayer = null;
+        }
+
+        activeEngine = null;
+      }
+
+      async function safePlay() {
+        try {
+          await video.play();
+          setStatus("Playing");
+        } catch (_err) {
+          setStatus("Autoplay blocked. Use the video play control.");
+        }
+      }
+
+      function armStallTimer(onStall) {
+        if (stallTimer) window.clearTimeout(stallTimer);
+        stallTimer = window.setTimeout(function () {
+          if (video.readyState < 2) {
+            if (typeof onStall === "function") onStall();
+          }
+        }, 7000);
+      }
+
+      function isLikelyHls(url) {
+        const lower = (url || "").toLowerCase();
+        return lower.includes(".m3u8") || lower.includes("format=m3u8") || lower.includes("hls");
+      }
+
+      function startNativePlayback() {
+        cleanupPlayers();
+        video.src = streamUrl;
+        activeEngine = "native";
+        setStatus("Starting native playback...");
+        armStallTimer(function () {
+          setError("Native playback stalled.");
+          setStatus("");
+        });
+        safePlay();
+      }
+
+      function startHls(onFatal) {
+        if (!(window.Hls && window.Hls.isSupported())) return false;
+
+        cleanupPlayers();
+        hlsPlayer = new window.Hls({
+          lowLatencyMode: true,
+          backBufferLength: 90,
+        });
+        activeEngine = "hls";
+        setStatus("Starting HLS playback...");
+
+        hlsPlayer.loadSource(streamUrl);
+        hlsPlayer.attachMedia(video);
+        hlsPlayer.on(window.Hls.Events.MANIFEST_PARSED, function () {
+          armStallTimer(function () {
+            if (typeof onFatal === "function") onFatal();
+          });
+          safePlay();
+        });
+
+        hlsPlayer.on(window.Hls.Events.ERROR, function (_event, data) {
+          if (data && data.fatal) {
+            if (typeof onFatal === "function") onFatal();
+          }
+        });
+
+        return true;
+      }
+
+      function startMpegTs(onFatal) {
+        const canUseMpegTs = window.mpegts && window.mpegts.getFeatureList && window.mpegts.getFeatureList().mseLivePlayback;
+        if (!(canUseMpegTs && window.mpegts.isSupported())) return false;
+
+        try {
+          cleanupPlayers();
+          mpegPlayer = window.mpegts.createPlayer(
+            {
+              type: "mpegts",
+              isLive: true,
+              url: streamUrl,
+              hasAudio: false,
+            },
+            {
+              lazyLoad: false,
+              enableWorker: false,
+              ignoreAudio: true,
+              liveBufferLatencyChasing: true,
+              liveSync: true,
+            }
+          );
+
+          activeEngine = "mpegts";
+          setStatus("Starting MPEG-TS playback...");
+          mpegPlayer.attachMediaElement(video);
+          mpegPlayer.load();
+          armStallTimer(function () {
+            if (typeof onFatal === "function") onFatal();
+          });
+          safePlay();
+
+          mpegPlayer.on(window.mpegts.Events.ERROR, function () {
+            if (typeof onFatal === "function") onFatal();
+          });
+
+          return true;
+        } catch (_err) {
+          if (typeof onFatal === "function") onFatal();
+          return false;
+        }
+      }
+
+      function startStream() {
+        clearError();
+        const likelyHls = isLikelyHls(streamUrl);
+
+        if (video.canPlayType("application/vnd.apple.mpegurl") && likelyHls) {
+          startNativePlayback();
+          return;
+        }
+
+        if (likelyHls) {
+          const hlsStarted = startHls(function () {
+            setStatus("HLS failed, trying MPEG-TS...");
+            const mpegStarted = startMpegTs(function () {
+              setError("Stream error. HLS and MPEG-TS playback both failed.");
+              setStatus("");
+            });
+            if (!mpegStarted) {
+              setError("HLS failed and MPEG-TS is not supported in this browser.");
+              setStatus("");
+            }
+          });
+
+          if (!hlsStarted) {
+            const mpegStarted = startMpegTs(function () {
+              setError("Unable to initialize stream playback.");
+              setStatus("");
+            });
+            if (!mpegStarted) {
+              setError("This browser cannot play HLS or MPEG-TS for this stream.");
+              setStatus("");
+            }
+          }
+          return;
+        }
+
+        const mpegStarted = startMpegTs(function () {
+          setStatus("MPEG-TS failed, trying HLS...");
+          const hlsStarted = startHls(function () {
+            setError("Stream error. MPEG-TS and HLS playback both failed.");
+            setStatus("");
+          });
+          if (!hlsStarted) {
+            setError("MPEG-TS failed and HLS is not supported in this browser.");
+            setStatus("");
+          }
+        });
+
+        if (!mpegStarted) {
+          const hlsStarted = startHls(function () {
+            setError("Unable to initialize stream playback.");
+            setStatus("");
+          });
+          if (!hlsStarted) {
+            setError("This browser cannot play this stream format directly.");
+            setStatus("");
+          }
+        }
+      }
+
+      if (!streamUrl) {
+        setError("No stream URL configured. Add HDHR_CHANNEL_41_URL or ?src=...");
+        setStatus("");
+        return;
+      }
+
+      video.addEventListener("loadeddata", function () {
+        if (stallTimer) {
+          window.clearTimeout(stallTimer);
+          stallTimer = null;
+        }
+      });
+
+      startStream();
+
+      window.addEventListener("beforeunload", function () {
+        cleanupPlayers();
+      });
+    })();
+  </script>
+</body>
+</html>

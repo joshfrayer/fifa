@@ -102,6 +102,7 @@
   {{ initial_teams|json_script:"initial-teams" }}
   {{ official_rounds|json_script:"official-data" }}
   {{ kickoff_rounds|json_script:"kickoff-data" }}
+  {{ eligible_mask|json_script:"eligible-data" }}
 
   <script src="{% static 'bracket/js/bracket.js' %}"></script>
 </body>

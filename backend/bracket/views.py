@@ -1,8 +1,12 @@
 import json
 import os
+import subprocess
+from ipaddress import ip_address
+from urllib.parse import quote, urlparse
+from urllib.request import Request, urlopen
 
 from django.db import transaction
-from django.http import HttpRequest, HttpResponseBadRequest, JsonResponse
+from django.http import HttpRequest, HttpResponseBadRequest, JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -205,6 +209,178 @@ def leaderboard_page(request: HttpRequest):
     return render(request, 'bracket/leaderboard.html')
 
 
+@require_GET
+def channel_41_player_page(request: HttpRequest):
+    default_stream_url = "http://10.45.67.62:5004/auto/v4.1"
+    stream_url = (
+        request.GET.get("src")
+        or os.getenv("HDHR_CHANNEL_41_URL", "")
+        or default_stream_url
+    ).strip()
+
+    proxy_url = f"/tv/channel-4-1/proxy/?src={quote(stream_url, safe='')}"
+    transcode_proxy_url = f"/tv/channel-4-1/proxy/transcode/?src={quote(stream_url, safe='')}"
+    proxy_url_absolute = request.build_absolute_uri(proxy_url)
+    transcode_proxy_url_absolute = request.build_absolute_uri(transcode_proxy_url)
+    return render(
+        request,
+        'bracket/channel_41_player.html',
+        {
+            'stream_url': stream_url,
+            'proxy_url': proxy_url,
+            'proxy_url_absolute': proxy_url_absolute,
+            'transcode_proxy_url': transcode_proxy_url,
+            'transcode_proxy_url_absolute': transcode_proxy_url_absolute,
+        },
+    )
+
+
+def _is_allowed_proxy_target(stream_url: str) -> bool:
+    try:
+        parsed = urlparse(stream_url)
+    except Exception:
+        return False
+
+    if parsed.scheme != "http" or not parsed.hostname:
+        return False
+
+    host = parsed.hostname.strip().lower()
+    if host == "localhost":
+        return True
+
+    try:
+        host_ip = ip_address(host)
+        return host_ip.is_private or host_ip.is_loopback
+    except ValueError:
+        # Allow mDNS/local hostnames.
+        return host.endswith(".local")
+
+
+@require_GET
+def channel_41_stream_proxy(request: HttpRequest):
+    default_stream_url = "http://10.45.67.62:5004/auto/v4.1"
+    stream_url = (
+        request.GET.get("src")
+        or os.getenv("HDHR_CHANNEL_41_URL", "")
+        or default_stream_url
+    ).strip()
+
+    if not _is_allowed_proxy_target(stream_url):
+        return JsonResponse({"ok": False, "error": "Proxy target is not allowed."}, status=400)
+
+    upstream_request = Request(stream_url, headers={"User-Agent": "Django-HDHR-Proxy/1.0"})
+
+    try:
+        upstream_response = urlopen(upstream_request, timeout=8)
+    except Exception as exc:
+        return JsonResponse({"ok": False, "error": f"Unable to open upstream stream: {exc}"}, status=502)
+
+    content_type = upstream_response.headers.get("Content-Type", "video/mpeg")
+
+    def stream_chunks():
+        try:
+            while True:
+                chunk = upstream_response.read(64 * 1024)
+                if not chunk:
+                    break
+                yield chunk
+        finally:
+            upstream_response.close()
+
+    response = StreamingHttpResponse(stream_chunks(), content_type=content_type)
+    response["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response["Pragma"] = "no-cache"
+    response["Expires"] = "0"
+    return response
+
+
+@require_GET
+def channel_41_stream_transcode_proxy(request: HttpRequest):
+    default_stream_url = "http://10.45.67.62:5004/auto/v4.1"
+    stream_url = (
+        request.GET.get("src")
+        or os.getenv("HDHR_CHANNEL_41_URL", "")
+        or default_stream_url
+    ).strip()
+
+    if not _is_allowed_proxy_target(stream_url):
+        return JsonResponse({"ok": False, "error": "Proxy target is not allowed."}, status=400)
+
+    try:
+        from imageio_ffmpeg import get_ffmpeg_exe
+
+        ffmpeg_exe = get_ffmpeg_exe()
+    except Exception as exc:
+        return JsonResponse({"ok": False, "error": f"FFmpeg runtime is unavailable: {exc}"}, status=500)
+
+    ffmpeg_cmd = [
+        ffmpeg_exe,
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-fflags",
+        "nobuffer",
+        "-flags",
+        "low_delay",
+        "-i",
+        stream_url,
+        "-an",
+        "-sn",
+        "-dn",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "ultrafast",
+        "-tune",
+        "zerolatency",
+        "-g",
+        "30",
+        "-keyint_min",
+        "30",
+        "-pix_fmt",
+        "yuv420p",
+        "-f",
+        "mpegts",
+        "pipe:1",
+    ]
+
+    try:
+        process = subprocess.Popen(
+            ffmpeg_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            bufsize=0,
+        )
+    except Exception as exc:
+        return JsonResponse({"ok": False, "error": f"Failed to start FFmpeg: {exc}"}, status=500)
+
+    def stream_chunks():
+        try:
+            while True:
+                if process.stdout is None:
+                    break
+                chunk = process.stdout.read(64 * 1024)
+                if chunk:
+                    yield chunk
+                    continue
+
+                if process.poll() is not None:
+                    break
+        finally:
+            if process.poll() is None:
+                process.kill()
+            try:
+                process.wait(timeout=1)
+            except Exception:
+                pass
+
+    response = StreamingHttpResponse(stream_chunks(), content_type="video/mp2t")
+    response["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response["Pragma"] = "no-cache"
+    response["Expires"] = "0"
+    return response
+
+
 @require_POST
 @csrf_exempt
 def submit_entry(request: HttpRequest):
@@ -313,6 +489,7 @@ def entry_readonly(request: HttpRequest, entry_id: int):
     initial_teams = _initial_teams_from_matches()
     official_rounds = _official_rounds_from_matches()
     kickoff_rounds = _empty_kickoff_rounds()
+    eligible_mask = entry.eligible_mask if _validate_mask(entry.eligible_mask) else _default_eligible_mask()
     for match in Match.objects.all().only('round_index', 'match_index', 'kickoff_at'):
         if match.round_index < len(ROUND_SIZES) and match.match_index < ROUND_SIZES[match.round_index]:
             kickoff_rounds[match.round_index][match.match_index] = (
@@ -326,6 +503,7 @@ def entry_readonly(request: HttpRequest, entry_id: int):
             'initial_teams': initial_teams,
             'official_rounds': official_rounds,
             'kickoff_rounds': kickoff_rounds,
+            'eligible_mask': eligible_mask,
         },
     )
 

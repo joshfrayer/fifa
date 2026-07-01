@@ -297,6 +297,13 @@ button:disabled {
   font-weight: 700;
 }
 
+.team.official-winner {
+  background: #dff6ea;
+  border-color: #88cda9;
+  color: #0d503b;
+  font-weight: 700;
+}
+
 .team.selected.selected-correct {
   background: #dff6ea;
   border-color: #88cda9;
