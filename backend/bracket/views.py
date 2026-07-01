@@ -332,6 +332,21 @@ def channel_41_stream_transcode_proxy(request: HttpRequest):
     except Exception as exc:
         return JsonResponse({"ok": False, "error": f"FFmpeg runtime is unavailable: {exc}"}, status=500)
 
+    # Tune for smoother browser playback on constrained LAN/Wi-Fi clients.
+    output_height = (os.getenv("HDHR_TRANSCODE_HEIGHT", "720") or "720").strip()
+    output_fps = (os.getenv("HDHR_TRANSCODE_FPS", "30") or "30").strip()
+    output_bitrate = (os.getenv("HDHR_TRANSCODE_BITRATE", "2500k") or "2500k").strip()
+    output_maxrate = (os.getenv("HDHR_TRANSCODE_MAXRATE", "3000k") or "3000k").strip()
+    output_bufsize = (os.getenv("HDHR_TRANSCODE_BUFSIZE", "6000k") or "6000k").strip()
+    enable_deinterlace = (os.getenv("HDHR_TRANSCODE_DEINTERLACE", "1") or "1").strip().lower() in {"1", "true", "yes", "on"}
+
+    vf_filters = []
+    if enable_deinterlace:
+        vf_filters.append("yadif")
+    vf_filters.append(f"scale=-2:{output_height}")
+    vf_filters.append(f"fps={output_fps}")
+    vf_value = ",".join(vf_filters)
+
     ffmpeg_cmd = [
         ffmpeg_exe,
         "-hide_banner",
@@ -343,6 +358,8 @@ def channel_41_stream_transcode_proxy(request: HttpRequest):
         "low_delay",
         "-i",
         stream_url,
+        "-vf",
+        vf_value,
         "-an",
         "-sn",
         "-dn",
@@ -352,10 +369,20 @@ def channel_41_stream_transcode_proxy(request: HttpRequest):
         "ultrafast",
         "-tune",
         "zerolatency",
+        "-r",
+        output_fps,
+        "-b:v",
+        output_bitrate,
+        "-maxrate",
+        output_maxrate,
+        "-bufsize",
+        output_bufsize,
         "-g",
         "30",
         "-keyint_min",
         "30",
+        "-x264-params",
+        "scenecut=0",
         "-pix_fmt",
         "yuv420p",
         "-f",
