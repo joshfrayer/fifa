@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import BracketEntry, Match, Team, TournamentResult
+from .models import BracketEntry, BracketPick, Match, Team, TournamentResult
 
 
 @admin.register(BracketEntry)
@@ -37,3 +37,17 @@ class MatchAdmin(admin.ModelAdmin):
 @admin.register(TournamentResult)
 class TournamentResultAdmin(admin.ModelAdmin):
     list_display = ("slug", "updated_at")
+
+
+@admin.register(BracketPick)
+class BracketPickAdmin(admin.ModelAdmin):
+    list_display = (
+        "entry",
+        "match",
+        "picked_team",
+        "is_eligible",
+        "points_awarded",
+        "picked_at",
+    )
+    list_filter = ("is_eligible", "match__round_index")
+    search_fields = ("entry__name", "picked_team__name")

@@ -7,6 +7,7 @@ from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
 
 from django.core.cache import cache
+from django.db import connection
 from django.db import transaction
 from django.http import HttpRequest, HttpResponseBadRequest, JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
@@ -15,7 +16,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
-from .models import BracketEntry, DEFAULT_TEAMS, Match, Team, TournamentResult
+from .models import BracketEntry, BracketPick, DEFAULT_TEAMS, Match, Team, TournamentResult
 
 
 ROUND_SIZES = [16, 8, 4, 2, 1]
@@ -218,6 +219,79 @@ def _locked_rounds_from_matches(now=None):
             locked_rounds[match.round_index][match.match_index] = bool(match.winner_id) or has_started
 
     return locked_rounds
+
+
+def _bracket_pick_table_available() -> bool:
+    table_names = set(connection.introspection.table_names())
+    return BracketPick._meta.db_table in table_names
+
+
+def _entry_rounds_and_mask_from_relational(entry: BracketEntry):
+    if not _bracket_pick_table_available():
+        return None
+
+    picks = list(
+        BracketPick.objects.filter(entry=entry)
+        .select_related("match", "picked_team")
+        .only("match__round_index", "match__match_index", "picked_team__name", "is_eligible")
+    )
+
+    if len(picks) != sum(ROUND_SIZES):
+        return None
+
+    rounds = _empty_rounds()
+    eligible_mask = _default_eligible_mask()
+
+    for pick in picks:
+        round_index = pick.match.round_index
+        match_index = pick.match.match_index
+        if round_index >= len(ROUND_SIZES) or match_index >= ROUND_SIZES[round_index]:
+            return None
+
+        rounds[round_index][match_index] = pick.picked_team.name if pick.picked_team else None
+        eligible_mask[round_index][match_index] = pick.is_eligible
+
+    return rounds, eligible_mask
+
+
+def _entry_rounds_and_mask(entry: BracketEntry):
+    relational = _entry_rounds_and_mask_from_relational(entry)
+    if relational is not None:
+        return relational
+
+    if not _validate_rounds(entry.picks):
+        return None
+
+    eligible_mask = entry.eligible_mask if _validate_mask(entry.eligible_mask) else _default_eligible_mask()
+    return entry.picks, eligible_mask
+
+
+def _sync_entry_picks(entry: BracketEntry, rounds, eligible_mask) -> None:
+    if not _bracket_pick_table_available():
+        return
+
+    match_by_key = {(m.round_index, m.match_index): m for m in Match.objects.all()}
+    if len(match_by_key) != sum(ROUND_SIZES):
+        return
+
+    team_by_name = {team.name.casefold(): team for team in Team.objects.all()}
+
+    for round_index, size in enumerate(ROUND_SIZES):
+        for match_index in range(size):
+            team_name = rounds[round_index][match_index]
+            team = team_by_name.get(str(team_name).casefold()) if team_name else None
+            match = match_by_key[(round_index, match_index)]
+            is_eligible = bool(eligible_mask[round_index][match_index])
+
+            BracketPick.objects.update_or_create(
+                entry=entry,
+                match=match,
+                defaults={
+                    "picked_team": team,
+                    "is_eligible": is_eligible,
+                    "picked_at": entry.created_at,
+                },
+            )
 
 
 @ensure_csrf_cookie
@@ -514,7 +588,9 @@ def submit_entry(request: HttpRequest):
     if BracketEntry.objects.filter(name__iexact=name).exists():
         return JsonResponse({"ok": False, "error": "That name already has a submitted bracket."}, status=400)
 
-    BracketEntry.objects.create(name=name, picks=rounds, eligible_mask=eligible_mask)
+    with transaction.atomic():
+        entry = BracketEntry.objects.create(name=name, picks=rounds, eligible_mask=eligible_mask)
+        _sync_entry_picks(entry, rounds, eligible_mask)
     return JsonResponse({"ok": True})
 
 
@@ -525,15 +601,14 @@ def leaderboard(request: HttpRequest):
 
     rows = []
     for entry in BracketEntry.objects.order_by("created_at"):
-        if not _validate_rounds(entry.picks):
+        entry_data = _entry_rounds_and_mask(entry)
+        if entry_data is None:
             continue
 
-        eligible_mask = entry.eligible_mask
-        if not _validate_mask(eligible_mask):
-            eligible_mask = _default_eligible_mask()
+        entry_rounds, eligible_mask = entry_data
 
-        score, _ = _score_entry(entry.picks, results, eligible_mask)
-        max_possible = _max_possible_score(entry.picks, results, eligible_mask, initial_teams)
+        score, _ = _score_entry(entry_rounds, results, eligible_mask)
+        max_possible = _max_possible_score(entry_rounds, results, eligible_mask, initial_teams)
         rows.append(
             {
                 "id": entry.id,
@@ -556,8 +631,11 @@ def entry_detail(request: HttpRequest, entry_id: int):
     except BracketEntry.DoesNotExist:
         return JsonResponse({"ok": False, "error": "Bracket entry not found."}, status=404)
 
-    if not _validate_rounds(entry.picks):
+    entry_data = _entry_rounds_and_mask(entry)
+    if entry_data is None:
         return JsonResponse({"ok": False, "error": "Stored bracket format is invalid."}, status=400)
+
+    entry_rounds, _ = entry_data
 
     return JsonResponse(
         {
@@ -565,7 +643,7 @@ def entry_detail(request: HttpRequest, entry_id: int):
             "entry": {
                 "id": entry.id,
                 "name": entry.name,
-                "rounds": entry.picks,
+                "rounds": entry_rounds,
                 "submitted_at": entry.created_at.isoformat(),
             },
         }
@@ -579,14 +657,16 @@ def entry_readonly(request: HttpRequest, entry_id: int):
     except BracketEntry.DoesNotExist:
         return JsonResponse({"ok": False, "error": "Bracket entry not found."}, status=404)
 
-    if not _validate_rounds(entry.picks):
+    entry_data = _entry_rounds_and_mask(entry)
+    if entry_data is None:
         return JsonResponse({"ok": False, "error": "Stored bracket format is invalid."}, status=400)
+
+    entry_rounds, eligible_mask = entry_data
 
     initial_teams = _initial_teams_from_matches()
     official_rounds = _official_rounds_from_matches()
     kickoff_rounds = _empty_kickoff_rounds()
     score_rounds = _score_rounds_from_matches()
-    eligible_mask = entry.eligible_mask if _validate_mask(entry.eligible_mask) else _default_eligible_mask()
     for match in Match.objects.all().only('round_index', 'match_index', 'kickoff_at'):
         if match.round_index < len(ROUND_SIZES) and match.match_index < ROUND_SIZES[match.round_index]:
             kickoff_rounds[match.round_index][match.match_index] = (
@@ -597,6 +677,7 @@ def entry_readonly(request: HttpRequest, entry_id: int):
         'bracket/entry_readonly.html',
         {
             'entry': entry,
+            'entry_rounds': entry_rounds,
             'initial_teams': initial_teams,
             'official_rounds': official_rounds,
             'kickoff_rounds': kickoff_rounds,

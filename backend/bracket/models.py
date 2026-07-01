@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 
 ROUND_SIZES = [16, 8, 4, 2, 1]
@@ -135,6 +136,39 @@ class BracketEntry(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+
+class BracketPick(models.Model):
+    entry = models.ForeignKey(
+        BracketEntry,
+        on_delete=models.CASCADE,
+        related_name='match_picks',
+    )
+    match = models.ForeignKey(
+        Match,
+        on_delete=models.CASCADE,
+        related_name='entry_picks',
+    )
+    picked_team = models.ForeignKey(
+        Team,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='picked_in_entries',
+    )
+    is_eligible = models.BooleanField(default=True)
+    points_awarded = models.SmallIntegerField(default=0)
+    picked_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['entry', 'match'], name='unique_entry_match_pick'),
+        ]
+        ordering = ['entry_id', 'match__round_index', 'match__match_index']
+
+    def __str__(self) -> str:
+        team_name = self.picked_team.name if self.picked_team else 'None'
+        return f'{self.entry.name} | R{self.match.round_index + 1}M{self.match.match_index + 1}: {team_name}'
 
 
 class TournamentResult(models.Model):

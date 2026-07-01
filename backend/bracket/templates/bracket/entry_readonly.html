@@ -112,7 +112,7 @@
         </div>
     </div>
 
-    {{ entry.picks|json_script:"entry-rounds" }}
+    {{ entry_rounds|json_script:"entry-rounds" }}
     {{ initial_teams|json_script:"initial-teams" }}
     {{ official_rounds|json_script:"official-data" }}
     {{ kickoff_rounds|json_script:"kickoff-data" }}
