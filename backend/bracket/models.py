@@ -34,6 +34,10 @@ class Match(models.Model):
     round_index = models.PositiveSmallIntegerField()
     match_index = models.PositiveSmallIntegerField()
     kickoff_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    home_score = models.PositiveSmallIntegerField(null=True, blank=True)
+    away_score = models.PositiveSmallIntegerField(null=True, blank=True)
+    home_pk = models.PositiveSmallIntegerField(null=True, blank=True)
+    away_pk = models.PositiveSmallIntegerField(null=True, blank=True)
     home_team = models.ForeignKey(
         Team,
         on_delete=models.SET_NULL,
@@ -97,6 +101,21 @@ class Match(models.Model):
                 if match.winner_id and match.winner_id not in valid_winner_ids:
                     match.winner = None
                     changed_fields.append('winner')
+
+                # If participants changed, stale score/PK values are no longer valid.
+                if ('home_team' in changed_fields or 'away_team' in changed_fields or 'winner' in changed_fields):
+                    if match.home_score is not None:
+                        match.home_score = None
+                        changed_fields.append('home_score')
+                    if match.away_score is not None:
+                        match.away_score = None
+                        changed_fields.append('away_score')
+                    if match.home_pk is not None:
+                        match.home_pk = None
+                        changed_fields.append('home_pk')
+                    if match.away_pk is not None:
+                        match.away_pk = None
+                        changed_fields.append('away_pk')
 
                 if changed_fields:
                     match.save(skip_rebuild=True, update_fields=changed_fields)

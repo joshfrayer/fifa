@@ -133,6 +133,7 @@
 
   {{ teams|json_script:"teams-data" }}
   {{ kickoff_rounds|json_script:"kickoff-data" }}
+  {{ score_rounds|json_script:"score-data" }}
   {{ locked_rounds|json_script:"locked-data" }}
   <script src="{% static 'bracket/js/bracket.js' %}"></script>
 </body>

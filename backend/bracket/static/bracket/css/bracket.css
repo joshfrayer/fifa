@@ -262,6 +262,27 @@ button:disabled {
   margin: 0 0.1rem 0.1rem;
 }
 
+.match-score {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #24465f;
+  letter-spacing: 0.02em;
+  margin: 0 0.1rem;
+}
+
+.match-live-link {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #0f4ea3;
+  text-decoration: none;
+  margin: 0 0.1rem;
+}
+
+.match-live-link:hover,
+.match-live-link:focus {
+  text-decoration: underline;
+}
+
 .team {
   width: 100%;
   text-align: left;

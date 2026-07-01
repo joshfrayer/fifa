@@ -135,7 +135,25 @@ function isCascadeWrongPick(team, eliminatedTeamKeys) {
     return eliminatedTeamKeys.has(getTeamKey(team));
 }
 
-function renderRoundSliceInteractive(state, teamsForRound, containerId, roundIndex, startMatch, matchCount, setWinner, eliminatedTeamKeys = null) {
+function formatMatchScore(score) {
+    if (!score || typeof score !== "object") return null;
+
+    const hasMain = score.home !== null || score.away !== null;
+    const hasPk = score.home_pk !== null || score.away_pk !== null;
+    if (!hasMain && !hasPk) return null;
+
+    const home = score.home === null ? "-" : String(score.home);
+    const away = score.away === null ? "-" : String(score.away);
+    const scoreline = `${home}-${away}`;
+
+    if (!hasPk) return scoreline;
+
+    const homePk = score.home_pk === null ? "-" : String(score.home_pk);
+    const awayPk = score.away_pk === null ? "-" : String(score.away_pk);
+    return `${scoreline} (PK ${homePk}-${awayPk})`;
+}
+
+function renderRoundSliceInteractive(state, teamsForRound, containerId, roundIndex, startMatch, matchCount, setWinner, eliminatedTeamKeys = null, scoreRounds = null) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
@@ -211,8 +229,26 @@ function renderRoundSliceInteractive(state, teamsForRound, containerId, roundInd
 
         });
         const kickoffIso = ((state.kickoffRounds[roundIndex] || [])[matchIndex]) || null;
-        const kickoffText = formatKickoffLocal(kickoffIso);
-        if (kickoffText) {
+        const scoreData = ((scoreRounds?.[roundIndex] || [])[matchIndex]) || null;
+        const scoreText = formatMatchScore(scoreData);
+        const kickoffDate = kickoffIso ? new Date(kickoffIso) : null;
+        const kickoffStarted = kickoffDate && !Number.isNaN(kickoffDate.getTime()) && kickoffDate.getTime() <= Date.now();
+        const showLiveLink = kickoffStarted && !officialWinner;
+        if (scoreText) {
+            const scoreLabel = document.createElement("div");
+            scoreLabel.className = "match-score";
+            scoreLabel.textContent = scoreText;
+            match.appendChild(scoreLabel);
+        }
+        const kickoffText = !showLiveLink ? formatKickoffLocal(kickoffIso) : null;
+        if (showLiveLink) {
+            const liveLink = document.createElement("a");
+            liveLink.className = "match-live-link";
+            liveLink.href = "/tv/";
+            liveLink.textContent = "Live";
+            liveLink.setAttribute("aria-label", "Watch live match stream");
+            match.appendChild(liveLink);
+        } else if (kickoffText) {
             const kickoffLabel = document.createElement("div");
             kickoffLabel.className = "match-kickoff";
             kickoffLabel.textContent = `${kickoffText}`;
@@ -222,7 +258,7 @@ function renderRoundSliceInteractive(state, teamsForRound, containerId, roundInd
     }
 }
 
-function renderRoundSliceReadonly(rounds, teamsForRound, containerId, roundIndex, startMatch, count, kickoffRounds = null, officialRounds = null, eliminatedTeamKeys = null, eligibleMask = null) {
+function renderRoundSliceReadonly(rounds, teamsForRound, containerId, roundIndex, startMatch, count, kickoffRounds = null, officialRounds = null, eliminatedTeamKeys = null, eligibleMask = null, scoreRounds = null) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
@@ -235,6 +271,10 @@ function renderRoundSliceReadonly(rounds, teamsForRound, containerId, roundIndex
         const selected = (rounds[roundIndex] || [])[matchIndex] || null;
         const officialWinner = ((officialRounds?.[roundIndex] || [])[matchIndex]) || null;
         const kickoffIso = ((kickoffRounds?.[roundIndex] || [])[matchIndex]) || null;
+        const scoreData = ((scoreRounds?.[roundIndex] || [])[matchIndex]) || null;
+        const kickoffDate = kickoffIso ? new Date(kickoffIso) : null;
+        const kickoffStarted = kickoffDate && !Number.isNaN(kickoffDate.getTime()) && kickoffDate.getTime() <= Date.now();
+        const showLiveLink = kickoffStarted && !officialWinner;
         const isEligible = ((eligibleMask?.[roundIndex] || [])[matchIndex]) !== false;
 
         const match = document.createElement("div");
@@ -283,8 +323,23 @@ function renderRoundSliceReadonly(rounds, teamsForRound, containerId, roundIndex
             match.appendChild(row);
         });
 
-        const kickoffText = formatKickoffLocal(kickoffIso);
-        if (kickoffText) {
+        const scoreText = formatMatchScore(scoreData);
+        if (scoreText) {
+            const scoreLabel = document.createElement("div");
+            scoreLabel.className = "match-score";
+            scoreLabel.textContent = scoreText;
+            match.appendChild(scoreLabel);
+        }
+
+        const kickoffText = !showLiveLink ? formatKickoffLocal(kickoffIso) : null;
+        if (showLiveLink) {
+            const liveLink = document.createElement("a");
+            liveLink.className = "match-live-link";
+            liveLink.href = "/tv/";
+            liveLink.textContent = "Live";
+            liveLink.setAttribute("aria-label", "Watch live match stream");
+            match.appendChild(liveLink);
+        } else if (kickoffText) {
             const kickoffLabel = document.createElement("div");
             kickoffLabel.className = "match-kickoff";
             kickoffLabel.textContent = kickoffText;
@@ -407,11 +462,13 @@ async function refreshLeaderboardBody(body) {
 function initIndexPage() {
     const teamsNode = document.getElementById("teams-data");
     const kickoffNode = document.getElementById("kickoff-data");
+    const scoreNode = document.getElementById("score-data");
     const lockedNode = document.getElementById("locked-data");
     if (!teamsNode) return;
 
     const TEAMS = JSON.parse(teamsNode.textContent);
     const kickoffRounds = kickoffNode ? JSON.parse(kickoffNode.textContent) : null;
+    const scoreRounds = scoreNode ? JSON.parse(scoreNode.textContent) : null;
     const lockedRounds = lockedNode ? JSON.parse(lockedNode.textContent) : null;
     const STORAGE_KEY = "wc2026_quick_bracket";
     const API_SUBMIT_ENTRY = "/api/submit-entry/";
@@ -506,21 +563,21 @@ function initIndexPage() {
     function renderAll() {
         const eliminatedTeamKeys = getEliminatedTeamKeys(TEAMS, state.officialRounds);
 
-        renderRoundSliceInteractive(state, getTeamsForRound, "left-r32", 0, 0, 8, setWinner, eliminatedTeamKeys);
-        renderRoundSliceInteractive(state, getTeamsForRound, "left-r16", 1, 0, 4, setWinner, eliminatedTeamKeys);
-        renderRoundSliceInteractive(state, getTeamsForRound, "left-qf", 2, 0, 2, setWinner, eliminatedTeamKeys);
-        renderRoundSliceInteractive(state, getTeamsForRound, "left-sf", 3, 0, 1, setWinner, eliminatedTeamKeys);
-        renderRoundSliceInteractive(state, getTeamsForRound, "right-r32", 0, 8, 8, setWinner, eliminatedTeamKeys);
-        renderRoundSliceInteractive(state, getTeamsForRound, "right-r16", 1, 4, 4, setWinner, eliminatedTeamKeys);
-        renderRoundSliceInteractive(state, getTeamsForRound, "right-qf", 2, 2, 2, setWinner, eliminatedTeamKeys);
-        renderRoundSliceInteractive(state, getTeamsForRound, "right-sf", 3, 1, 1, setWinner, eliminatedTeamKeys);
-        renderRoundSliceInteractive(state, getTeamsForRound, "final", 4, 0, 1, setWinner, eliminatedTeamKeys);
+        renderRoundSliceInteractive(state, getTeamsForRound, "left-r32", 0, 0, 8, setWinner, eliminatedTeamKeys, scoreRounds);
+        renderRoundSliceInteractive(state, getTeamsForRound, "left-r16", 1, 0, 4, setWinner, eliminatedTeamKeys, scoreRounds);
+        renderRoundSliceInteractive(state, getTeamsForRound, "left-qf", 2, 0, 2, setWinner, eliminatedTeamKeys, scoreRounds);
+        renderRoundSliceInteractive(state, getTeamsForRound, "left-sf", 3, 0, 1, setWinner, eliminatedTeamKeys, scoreRounds);
+        renderRoundSliceInteractive(state, getTeamsForRound, "right-r32", 0, 8, 8, setWinner, eliminatedTeamKeys, scoreRounds);
+        renderRoundSliceInteractive(state, getTeamsForRound, "right-r16", 1, 4, 4, setWinner, eliminatedTeamKeys, scoreRounds);
+        renderRoundSliceInteractive(state, getTeamsForRound, "right-qf", 2, 2, 2, setWinner, eliminatedTeamKeys, scoreRounds);
+        renderRoundSliceInteractive(state, getTeamsForRound, "right-sf", 3, 1, 1, setWinner, eliminatedTeamKeys, scoreRounds);
+        renderRoundSliceInteractive(state, getTeamsForRound, "final", 4, 0, 1, setWinner, eliminatedTeamKeys, scoreRounds);
 
-        renderRoundSliceInteractive(state, getTeamsForRound, "mobile-r32", 0, 0, 16, setWinner, eliminatedTeamKeys);
-        renderRoundSliceInteractive(state, getTeamsForRound, "mobile-r16", 1, 0, 8, setWinner, eliminatedTeamKeys);
-        renderRoundSliceInteractive(state, getTeamsForRound, "mobile-qf", 2, 0, 4, setWinner, eliminatedTeamKeys);
-        renderRoundSliceInteractive(state, getTeamsForRound, "mobile-sf", 3, 0, 2, setWinner, eliminatedTeamKeys);
-        renderRoundSliceInteractive(state, getTeamsForRound, "mobile-final", 4, 0, 1, setWinner, eliminatedTeamKeys);
+        renderRoundSliceInteractive(state, getTeamsForRound, "mobile-r32", 0, 0, 16, setWinner, eliminatedTeamKeys, scoreRounds);
+        renderRoundSliceInteractive(state, getTeamsForRound, "mobile-r16", 1, 0, 8, setWinner, eliminatedTeamKeys, scoreRounds);
+        renderRoundSliceInteractive(state, getTeamsForRound, "mobile-qf", 2, 0, 4, setWinner, eliminatedTeamKeys, scoreRounds);
+        renderRoundSliceInteractive(state, getTeamsForRound, "mobile-sf", 3, 0, 2, setWinner, eliminatedTeamKeys, scoreRounds);
+        renderRoundSliceInteractive(state, getTeamsForRound, "mobile-final", 4, 0, 1, setWinner, eliminatedTeamKeys, scoreRounds);
 
         const champion = state.rounds[4][0] || "TBD";
         setChampionLabels(champion);
@@ -771,6 +828,7 @@ function initReadonlyPage() {
     const teamsNode = document.getElementById("initial-teams");
     const officialNode = document.getElementById("official-data");
     const kickoffNode = document.getElementById("kickoff-data");
+    const scoreNode = document.getElementById("score-data");
     const eligibleNode = document.getElementById("eligible-data");
     if (!roundsNode || !teamsNode) return;
 
@@ -778,6 +836,7 @@ function initReadonlyPage() {
     const initialTeams = JSON.parse(teamsNode.textContent);
     const officialRounds = officialNode ? JSON.parse(officialNode.textContent) : null;
     const kickoffRounds = kickoffNode ? JSON.parse(kickoffNode.textContent) : null;
+    const scoreRounds = scoreNode ? JSON.parse(scoreNode.textContent) : null;
     const eligibleMask = eligibleNode ? JSON.parse(eligibleNode.textContent) : null;
     const eliminatedTeamKeys = getEliminatedTeamKeys(initialTeams, officialRounds || []);
 
@@ -787,21 +846,21 @@ function initReadonlyPage() {
         return prior.map((team) => team || "TBD");
     }
 
-    renderRoundSliceReadonly(rounds, teamsForRound, "left-r32", 0, 0, 8, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
-    renderRoundSliceReadonly(rounds, teamsForRound, "left-r16", 1, 0, 4, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
-    renderRoundSliceReadonly(rounds, teamsForRound, "left-qf", 2, 0, 2, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
-    renderRoundSliceReadonly(rounds, teamsForRound, "left-sf", 3, 0, 1, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
-    renderRoundSliceReadonly(rounds, teamsForRound, "right-r32", 0, 8, 8, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
-    renderRoundSliceReadonly(rounds, teamsForRound, "right-r16", 1, 4, 4, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
-    renderRoundSliceReadonly(rounds, teamsForRound, "right-qf", 2, 2, 2, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
-    renderRoundSliceReadonly(rounds, teamsForRound, "right-sf", 3, 1, 1, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
-    renderRoundSliceReadonly(rounds, teamsForRound, "final", 4, 0, 1, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
+    renderRoundSliceReadonly(rounds, teamsForRound, "left-r32", 0, 0, 8, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask, scoreRounds);
+    renderRoundSliceReadonly(rounds, teamsForRound, "left-r16", 1, 0, 4, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask, scoreRounds);
+    renderRoundSliceReadonly(rounds, teamsForRound, "left-qf", 2, 0, 2, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask, scoreRounds);
+    renderRoundSliceReadonly(rounds, teamsForRound, "left-sf", 3, 0, 1, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask, scoreRounds);
+    renderRoundSliceReadonly(rounds, teamsForRound, "right-r32", 0, 8, 8, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask, scoreRounds);
+    renderRoundSliceReadonly(rounds, teamsForRound, "right-r16", 1, 4, 4, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask, scoreRounds);
+    renderRoundSliceReadonly(rounds, teamsForRound, "right-qf", 2, 2, 2, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask, scoreRounds);
+    renderRoundSliceReadonly(rounds, teamsForRound, "right-sf", 3, 1, 1, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask, scoreRounds);
+    renderRoundSliceReadonly(rounds, teamsForRound, "final", 4, 0, 1, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask, scoreRounds);
 
-    renderRoundSliceReadonly(rounds, teamsForRound, "mobile-r32", 0, 0, 16, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
-    renderRoundSliceReadonly(rounds, teamsForRound, "mobile-r16", 1, 0, 8, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
-    renderRoundSliceReadonly(rounds, teamsForRound, "mobile-qf", 2, 0, 4, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
-    renderRoundSliceReadonly(rounds, teamsForRound, "mobile-sf", 3, 0, 2, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
-    renderRoundSliceReadonly(rounds, teamsForRound, "mobile-final", 4, 0, 1, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask);
+    renderRoundSliceReadonly(rounds, teamsForRound, "mobile-r32", 0, 0, 16, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask, scoreRounds);
+    renderRoundSliceReadonly(rounds, teamsForRound, "mobile-r16", 1, 0, 8, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask, scoreRounds);
+    renderRoundSliceReadonly(rounds, teamsForRound, "mobile-qf", 2, 0, 4, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask, scoreRounds);
+    renderRoundSliceReadonly(rounds, teamsForRound, "mobile-sf", 3, 0, 2, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask, scoreRounds);
+    renderRoundSliceReadonly(rounds, teamsForRound, "mobile-final", 4, 0, 1, kickoffRounds, officialRounds, eliminatedTeamKeys, eligibleMask, scoreRounds);
 
     const champion = (rounds[4] || [])[0] || "TBD";
     setChampionLabels(champion);

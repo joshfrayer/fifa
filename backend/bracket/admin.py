@@ -17,10 +17,21 @@ class TeamAdmin(admin.ModelAdmin):
 
 @admin.register(Match)
 class MatchAdmin(admin.ModelAdmin):
-    list_display = ("round_index", "match_index", "kickoff_at", "home_team", "away_team", "winner")
+    list_display = (
+        "round_index",
+        "match_index",
+        "kickoff_at",
+        "home_team",
+        "away_team",
+        "home_score",
+        "away_score",
+        "home_pk",
+        "away_pk",
+        "winner",
+    )
     list_filter = ("round_index",)
     search_fields = ("home_team__name", "away_team__name", "winner__name")
-    list_editable = ("kickoff_at", "winner")
+    list_editable = ("kickoff_at", "home_score", "away_score", "home_pk", "away_pk", "winner")
 
 
 @admin.register(TournamentResult)

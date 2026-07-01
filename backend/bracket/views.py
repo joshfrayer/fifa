@@ -28,6 +28,23 @@ def _empty_kickoff_rounds() -> list[list[str | None]]:
     return [[None] * size for size in ROUND_SIZES]
 
 
+def _empty_score_rounds() -> list[list[dict[str, int | None]]]:
+    return [[{"home": None, "away": None, "home_pk": None, "away_pk": None} for _ in range(size)] for size in ROUND_SIZES]
+
+
+def _score_rounds_from_matches() -> list[list[dict[str, int | None]]]:
+    score_rounds = _empty_score_rounds()
+    for match in Match.objects.all().only('round_index', 'match_index', 'home_score', 'away_score', 'home_pk', 'away_pk'):
+        if match.round_index < len(ROUND_SIZES) and match.match_index < ROUND_SIZES[match.round_index]:
+            score_rounds[match.round_index][match.match_index] = {
+                "home": match.home_score,
+                "away": match.away_score,
+                "home_pk": match.home_pk,
+                "away_pk": match.away_pk,
+            }
+    return score_rounds
+
+
 def _default_eligible_mask() -> list[list[bool]]:
     return [[True] * size for size in ROUND_SIZES]
 
@@ -183,6 +200,7 @@ def _locked_rounds_from_matches(now=None):
 def index(request):
     teams = []
     kickoff_rounds = _empty_kickoff_rounds()
+    score_rounds = _score_rounds_from_matches()
     locked_rounds = _locked_rounds_from_matches()
 
     for match in Match.objects.all().only('round_index', 'match_index', 'kickoff_at'):
@@ -199,6 +217,7 @@ def index(request):
         {
             'teams': teams,
             'kickoff_rounds': kickoff_rounds,
+            'score_rounds': score_rounds,
             'locked_rounds': locked_rounds,
         },
     )
@@ -489,6 +508,7 @@ def entry_readonly(request: HttpRequest, entry_id: int):
     initial_teams = _initial_teams_from_matches()
     official_rounds = _official_rounds_from_matches()
     kickoff_rounds = _empty_kickoff_rounds()
+    score_rounds = _score_rounds_from_matches()
     eligible_mask = entry.eligible_mask if _validate_mask(entry.eligible_mask) else _default_eligible_mask()
     for match in Match.objects.all().only('round_index', 'match_index', 'kickoff_at'):
         if match.round_index < len(ROUND_SIZES) and match.match_index < ROUND_SIZES[match.round_index]:
@@ -503,6 +523,7 @@ def entry_readonly(request: HttpRequest, entry_id: int):
             'initial_teams': initial_teams,
             'official_rounds': official_rounds,
             'kickoff_rounds': kickoff_rounds,
+            'score_rounds': score_rounds,
             'eligible_mask': eligible_mask,
         },
     )

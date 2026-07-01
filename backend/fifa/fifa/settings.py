@@ -10,7 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -72,10 +74,23 @@ WSGI_APPLICATION = 'fifa.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+
+def required_env(*keys):
+    for key in keys:
+        value = os.getenv(key)
+        if value:
+            return value
+    raise ImproperlyConfigured(f"Missing required database environment variable(s): {', '.join(keys)}")
+
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': required_env('DJANGO_DB_NAME', 'POSTGRES_DB'),
+        'USER': required_env('DJANGO_DB_USER', 'POSTGRES_USER'),
+        'PASSWORD': os.getenv('DJANGO_DB_PASSWORD') or os.getenv('POSTGRES_PASSWORD') or '',
+        'HOST': required_env('DJANGO_DB_HOST'),
+        'PORT': os.getenv('DJANGO_DB_PORT', '5432'),
     }
 }
 

@@ -2,9 +2,36 @@
 
 import os
 from pathlib import Path
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def load_dotenv() -> None:
+    env_paths = [BASE_DIR / '.env', BASE_DIR.parent / '.env']
+    for env_path in env_paths:
+        if not env_path.exists() or not env_path.is_file():
+            continue
+
+        for raw_line in env_path.read_text(encoding='utf-8').splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+
+            key, value = line.split('=', 1)
+            key = key.strip()
+            value = value.strip()
+            if not key:
+                continue
+
+            if len(value) >= 2 and ((value[0] == '"' and value[-1] == '"') or (value[0] == "'" and value[-1] == "'")):
+                value = value[1:-1]
+
+            os.environ.setdefault(key, value)
+
+
+load_dotenv()
 
 
 # Quick-start development settings - unsuitable for production
@@ -91,30 +118,31 @@ WSGI_APPLICATION = 'fifa.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-db_name = os.getenv('DJANGO_DB_NAME') or os.getenv('POSTGRES_DB')
-db_user = os.getenv('DJANGO_DB_USER') or os.getenv('POSTGRES_USER')
-db_password = os.getenv('DJANGO_DB_PASSWORD') or os.getenv('POSTGRES_PASSWORD')
-db_host = os.getenv('DJANGO_DB_HOST')
 
-if db_name and db_user and db_host:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': db_name,
-            'USER': db_user,
-            'PASSWORD': db_password or '',
-            'HOST': db_host,
-            'PORT': os.getenv('DJANGO_DB_PORT', '5432'),
-            'CONN_MAX_AGE': env_int('DJANGO_DB_CONN_MAX_AGE', 60),
-        }
+def required_env(*keys: str) -> str:
+    for key in keys:
+        value = os.getenv(key)
+        if value:
+            return value
+    raise ImproperlyConfigured(f"Missing required database environment variable(s): {', '.join(keys)}")
+
+
+db_name = required_env('DJANGO_DB_NAME', 'POSTGRES_DB')
+db_user = required_env('DJANGO_DB_USER', 'POSTGRES_USER')
+db_host = required_env('DJANGO_DB_HOST')
+db_password = os.getenv('DJANGO_DB_PASSWORD') or os.getenv('POSTGRES_PASSWORD') or ''
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': db_name,
+        'USER': db_user,
+        'PASSWORD': db_password,
+        'HOST': db_host,
+        'PORT': os.getenv('DJANGO_DB_PORT', '5432'),
+        'CONN_MAX_AGE': env_int('DJANGO_DB_CONN_MAX_AGE', 60),
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.getenv('DJANGO_DB_PATH', BASE_DIR / 'db.sqlite3'),
-        }
-    }
+}
 
 
 # Password validation
