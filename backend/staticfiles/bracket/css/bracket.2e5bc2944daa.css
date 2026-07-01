@@ -90,6 +90,41 @@ body.bracket-page .wrap {
   z-index: 1;
 }
 
+body.bracket-page .wrap::before {
+  content: "";
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 88px;
+  height: 88px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.3;
+  background-image: url("https://mythosimage.com/wp-content/themes/mythosimage/images/mythimg.png");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: grayscale(1) brightness(0) invert(1);
+}
+
+@supports ((-webkit-mask-image: url("")) or (mask-image: url(""))) {
+  body.bracket-page .wrap::before {
+    background-image: none;
+    filter: none;
+    opacity: 0.4;
+    background-color: rgba(255, 255, 255, 0.92);
+    -webkit-mask-image: url("https://mythosimage.com/wp-content/themes/mythosimage/images/mythimg.png");
+    mask-image: url("https://mythosimage.com/wp-content/themes/mythosimage/images/mythimg.png");
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+  }
+}
+
 body.bracket-index {
   background:
     radial-gradient(circle at 10% 10%, rgba(227, 250, 239, 0.25) 0%, transparent 30%),

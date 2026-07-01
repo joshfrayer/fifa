@@ -72,7 +72,17 @@ body.bracket-page::before {
 }
 
 body.bracket-page::after {
-  content: none;
+  content: "";
+  position: fixed;
+  inset: 2vh 1.2vw;
+  border-radius: 10px;
+  box-sizing: border-box;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 600' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.24)' stroke-width='2'%3E%3Crect x='0' y='180' width='165' height='240'/%3E%3Crect x='0' y='245' width='55' height='110'/%3E%3Crect x='835' y='180' width='165' height='240'/%3E%3Crect x='945' y='245' width='55' height='110'/%3E%3Cpath d='M165 260 A60 60 0 0 1 165 340'/%3E%3Cpath d='M835 260 A60 60 0 0 0 835 340'/%3E%3C/g%3E%3Cg fill='rgba(255,255,255,0.24)'%3E%3Ccircle cx='110' cy='300' r='3'/%3E%3Ccircle cx='890' cy='300' r='3'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 body.bracket-page .wrap {
