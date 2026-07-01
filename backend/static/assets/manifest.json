@@ -1,34 +1,34 @@
 {
-  "_client-8mI55a-a.js": {
-    "file": "client-8mI55a-a.js",
+  "_client-BhoPIwB5.js": {
+    "file": "client-BhoPIwB5.js",
     "name": "client",
     "css": [
-      "client.BBLM3ypC.css"
+      "client.G3rwNVjI.css"
     ]
   },
-  "_client.BBLM3ypC.css": {
-    "file": "client.BBLM3ypC.css",
-    "src": "_client.BBLM3ypC.css"
+  "_client.G3rwNVjI.css": {
+    "file": "client.G3rwNVjI.css",
+    "src": "_client.G3rwNVjI.css"
   },
   "js/bracket_page.jsx": {
-    "file": "bracket.DRXpj6aA.js",
+    "file": "bracket.BPQ3I3oz.js",
     "name": "bracket",
     "src": "js/bracket_page.jsx",
     "isEntry": true,
     "imports": [
-      "_client-8mI55a-a.js"
+      "_client-BhoPIwB5.js"
     ]
   },
   "js/live_tv_player_page.jsx": {
-    "file": "live_tv_player.C6X2W2zm.js",
+    "file": "live_tv_player.CmQZXPJV.js",
     "name": "live_tv_player",
     "src": "js/live_tv_player_page.jsx",
     "isEntry": true,
     "imports": [
-      "_client-8mI55a-a.js"
+      "_client-BhoPIwB5.js"
     ],
     "css": [
-      "live_tv_player.fl-M9RZi.css"
+      "live_tv_player.B2t4Fq7_.css"
     ]
   }
 }

@@ -1,4 +1,5 @@
 import json
+import logging
 from functools import lru_cache
 from pathlib import Path
 
@@ -8,6 +9,7 @@ from django.templatetags.static import static
 from django.utils.safestring import mark_safe
 
 register = template.Library()
+logger = logging.getLogger(__name__)
 
 
 def _manifest_candidates() -> list[Path]:
@@ -49,9 +51,19 @@ def _collect_css_files(manifest: dict, entry_key: str, seen: set[str] | None = N
 
 @register.simple_tag
 def vite_entry(entry_name: str) -> str:
-    manifest = _load_manifest()
+    try:
+        manifest = _load_manifest()
+    except Exception as exc:
+        if settings.DEBUG:
+            raise
+        logger.exception("Unable to load Vite manifest; rendering without bundled assets: %s", exc)
+        return ""
+
     if entry_name not in manifest:
-        raise KeyError(f"Vite entry '{entry_name}' is missing from manifest.json")
+        if settings.DEBUG:
+            raise KeyError(f"Vite entry '{entry_name}' is missing from manifest.json")
+        logger.error("Vite entry '%s' missing from manifest.json; rendering without bundled assets", entry_name)
+        return ""
 
     entry = manifest[entry_name]
     tags: list[str] = []
